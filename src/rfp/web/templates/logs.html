@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Журналы{% endblock %}
+{% block content %}
+<div class="page__head">
+  <div>
+    <h1>Журналы</h1>
+    <p class="muted">Кто что делал и что уходило в модель. Только для администратора.</p>
+  </div>
+</div>
+
+<nav class="tabs" aria-label="Тип журнала">
+  <a href="/logs?tab=actions" {% if tab == 'actions' %}aria-current="page"{% endif %}>Действия</a>
+  <a href="/logs?tab=model" {% if tab == 'model' %}aria-current="page"{% endif %}>Запросы к модели</a>
+</nav>
+
+{% if tab == 'model' and job_id %}
+<p class="muted" style="margin-bottom:12px">Только опросник №{{ job_id }}. <a href="/logs?tab=model">Показать все</a></p>
+{% endif %}
+
+<div class="table-wrap">
+  {% if entries %}
+  {% if tab == 'actions' %}
+  <table class="data">
+    <thead><tr>
+      <th scope="col">Время</th><th scope="col">Пользователь</th><th scope="col">Действие</th>
+      <th scope="col">Объект</th><th scope="col">Подробности</th>
+    </tr></thead>
+    <tbody>
+      {% for e in entries %}
+      <tr>
+        <td class="nowrap num">{{ e.ts|dt }}</td>
+        <td>{{ e.username or '—' }}</td>
+        <td class="nowrap">{{ e.action }}</td>
+        <td class="nowrap">{% if e.object_type %}{{ e.object_type }}{% if e.object_id %} · {{ e.object_id }}{% endif %}{% else %}—{% endif %}</td>
+        <td class="details-json mono">{{ details(e.details) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <table class="data" style="min-width:1100px">
+    <thead><tr>
+      <th scope="col">Время</th><th scope="col">Вопрос</th><th scope="col">Фрагменты</th>
+      <th scope="col">Статус</th><th scope="col">Токены</th><th scope="col">Стоимость</th>
+      <th scope="col">Время ответа</th>
+    </tr></thead>
+    <tbody>
+      {% for e in entries %}
+      <tr>
+        <td class="nowrap num">{{ e.ts|dt }}
+          {% if e.job_id %}<div class="caption"><a href="/logs?tab=model&amp;job_id={{ e.job_id }}">опросник №{{ e.job_id }}</a>{% if e.qid %}, {{ e.qid }}{% endif %}</div>{% endif %}</td>
+        <td class="prewrap" style="max-width:420px">{{ e.question }}
+          {% if e.error %}<div class="caption" style="color:var(--error)">Ошибка: {{ e.error }}</div>{% endif %}</td>
+        <td>
+          {% if e.fragments %}
+          <details class="log-fragments">
+            <summary>{{ e.fragments|length }} шт.</summary>
+            <ul>{% for fr in e.fragments %}<li><span class="mono">#{{ fr.chunk_id }}</span> {{ fr.doc_id }} · {{ '%.3f'|format(fr.score) }}</li>{% endfor %}</ul>
+          </details>
+          {% else %}<span class="subtle">—</span>{% endif %}
+        </td>
+        <td>{% if e.status %}<span class="tag {% if e.status == 'needs_review' %}tag--warning{% elif e.status == 'answered' %}tag--success{% endif %}">{{ ITEM_STATUS[e.status][0] if e.status in ITEM_STATUS else e.status }}</span>{% else %}<span class="tag tag--error">сбой</span>{% endif %}</td>
+        <td class="num nowrap">{% if e.prompt_tokens is not none %}{{ e.prompt_tokens }} + {{ e.completion_tokens }}{% else %}—{% endif %}
+          {% if e.model %}<div class="caption muted">{{ e.model }}</div>{% endif %}</td>
+        <td class="num">{{ e.cost_usd|cost }}</td>
+        <td class="num nowrap">{{ e.duration_s|secs }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% else %}
+  <p class="table-empty">Записей пока нет.</p>
+  {% endif %}
+</div>
+{% include "_pager.html" %}
+{% endblock %}

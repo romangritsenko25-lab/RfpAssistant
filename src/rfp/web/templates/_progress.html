@@ -1,0 +1,7 @@
+<div id="progress" class="progress" role="status"
+     {% if job.status in ('queued', 'running') %}hx-get="/jobs/{{ job.id }}/progress" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
+  {% set label, kind = JOB_STATUS[job.status] %}
+  <span class="tag {% if kind %}tag--{{ kind }}{% endif %}">{{ label }}</span>
+  <span class="num">Обработано {{ job.done }} из {{ job.total }}</span>
+  <span class="bar" role="presentation"><i style="width:{{ (100 * job.done / job.total) if job.total else 0 }}%"></i></span>
+</div>

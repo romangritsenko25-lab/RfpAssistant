@@ -1,0 +1,17 @@
+{# Summary tiles double as the status filter. Expects: job, counts, f #}
+<nav id="summary" class="summary" aria-label="Фильтр по статусу"
+     hx-get="/jobs/{{ job.id }}/summary?f={{ f }}" hx-trigger="item-changed from:body" hx-swap="outerHTML">
+  {% for key, label in (('all', 'Все вопросы'), ('ready', 'Готово'), ('review', 'На проверку'), ('no_data', 'Нет данных')) %}
+  <a class="tile" href="/jobs/{{ job.id }}{% if key != 'all' %}?f={{ key }}{% endif %}"
+     {% if f == key %}aria-current="true"{% endif %}>
+    <span class="tile__label">{{ label }}</span>
+    <span class="tile__value">{{ counts[key] }}</span>
+  </a>
+  {% endfor %}
+  {% if counts.pending %}
+  <div class="tile tile--pending">
+    <span class="tile__label">Ожидают обработки</span>
+    <span class="tile__value">{{ counts.pending }}</span>
+  </div>
+  {% endif %}
+</nav>

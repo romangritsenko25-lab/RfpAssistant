@@ -1,0 +1,108 @@
+{# One question as a row group. Expects: job_id, item, f; optional: expanded, editing, draft, flash, error #}
+{% set label, kind = ITEM_STATUS[item.status] %}
+{% set base = '/jobs/' ~ job_id ~ '/items/' ~ (item.qid|urlencode) %}
+{% set q = '?f=' ~ f %}
+{% set docs = item.citations|map(attribute='doc_id')|unique|list %}
+<tbody class="item{% if expanded %} is-open{% endif %}">
+  <tr class="item-row">
+    <td class="num col-num">{{ item.number or item.qid }}</td>
+    <td class="prewrap">{{ item.question }}</td>
+    <td><div class="clamp">{{ item.text if item.status != 'pending' else '' }}</div></td>
+    <td><span class="tag {% if kind %}tag--{{ kind }}{% endif %}">{{ label }}</span></td>
+    <td class="num">
+      {% if item.status == 'pending' %}—{% else %}{{ item.confidence|pct }}
+      <span class="meter" role="presentation"><i style="width:{{ (item.confidence * 100)|round|int }}%"></i></span>{% endif %}
+    </td>
+    <td>
+      {% if docs %}<span class="chips">{% for d in docs[:2] %}<span class="chip" title="{{ d }}">{{ d }}</span>{% endfor %}
+        {% if docs|length > 2 %}<span class="chip">+{{ docs|length - 2 }}</span>{% endif %}</span>
+      {% else %}<span class="subtle">—</span>{% endif %}
+    </td>
+    <td class="col-act">
+      {% if item.status != 'pending' %}
+        {% if item.status != 'approved' %}
+        <button class="btn btn--ghost" type="button" hx-post="{{ base }}/approve{{ q }}"
+                hx-target="closest tbody" hx-swap="outerHTML">Одобрить</button>
+        {% endif %}
+        <button class="btn btn--ghost toggle" type="button" data-toggle aria-expanded="{{ 'true' if expanded else 'false' }}"
+                aria-label="Подробности: вопрос {{ item.number or item.qid }}">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 5.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        </button>
+      {% endif %}
+    </td>
+  </tr>
+  {% if item.status != 'pending' %}
+  <tr class="item-detail">
+    <td colspan="7">
+      {% if editing %}
+      <form class="detail-grid" style="grid-template-columns:minmax(0,1fr)" hx-post="{{ base }}/edit{{ q }}"
+            hx-target="closest tbody" hx-swap="outerHTML">
+        <div class="field">
+          <label for="text-{{ item.qid }}">Ответ</label>
+          <textarea class="input" id="text-{{ item.qid }}" name="text" required autofocus>{{ draft }}</textarea>
+        </div>
+        {% if error %}<div class="msg msg--error msg--inline" role="alert">{{ error }}</div>{% endif %}
+        <div class="btn-row">
+          <button class="btn btn--primary" type="submit">Сохранить</button>
+          <button class="btn btn--tertiary" type="button" hx-get="{{ base }}{{ q }}"
+                  hx-target="closest tbody" hx-swap="outerHTML">Отмена</button>
+        </div>
+      </form>
+      {% else %}
+      <div class="detail-grid">
+        <div>
+          <div class="block">
+            <h3>Откуда вопрос</h3>
+            <p class="muted">{{ item.location|location_label }}</p>
+          </div>
+          {% if item.model_text and item.model_text != item.text %}
+          <div class="block">
+            <h3>Черновик модели</h3>
+            <p class="prewrap muted">{{ item.model_text }}</p>
+          </div>
+          {% endif %}
+          {% if item.note %}
+          <div class="block">
+            <h3>Примечание</h3>
+            <p class="prewrap muted">{{ item.note|ru }}</p>
+          </div>
+          {% endif %}
+          {% if item.reviewed_by %}
+          <div class="block">
+            <h3>Проверка</h3>
+            <p class="muted">{{ item.reviewed_by }}, {{ item.reviewed_at|dt }}</p>
+          </div>
+          {% endif %}
+        </div>
+        <div>
+          <h3>Источники</h3>
+          {% for c in item.citations %}
+          <div class="cite">
+            <div class="cite__ref">{{ c.doc_id }}{% if c.section %} <span class="muted" style="font-weight:400">· {{ c.section }}</span>{% endif %}</div>
+            <blockquote>{{ c.snippet }}</blockquote>
+          </div>
+          {% else %}
+          <p class="muted">Ответ не опирается на фрагменты базы знаний.</p>
+          {% endfor %}
+        </div>
+      </div>
+      {% if flash %}<div class="msg msg--success msg--inline" role="status">{{ flash }}</div>{% endif %}
+      {% if error %}<div class="msg msg--error msg--inline" role="alert">{{ error }}</div>{% endif %}
+      <div class="detail-actions btn-row">
+        <button class="btn btn--tertiary" type="button" hx-get="{{ base }}/edit{{ q }}"
+                hx-target="closest tbody" hx-swap="outerHTML">Изменить ответ</button>
+        {% if item.status != 'approved' %}
+        <button class="btn btn--primary" type="button" hx-post="{{ base }}/approve{{ q }}"
+                hx-target="closest tbody" hx-swap="outerHTML">Одобрить</button>
+        {% endif %}
+        {% if item.status in ('approved', 'edited') %}
+        <button class="btn btn--tertiary" type="button" hx-post="{{ base }}/reference{{ q }}"
+                hx-target="closest tbody" hx-swap="outerHTML"
+                title="Добавить ответ в базу знаний, чтобы он находился при поиске">Сохранить как эталон</button>
+        {% endif %}
+      </div>
+      {% endif %}
+    </td>
+  </tr>
+  {% endif %}
+</tbody>

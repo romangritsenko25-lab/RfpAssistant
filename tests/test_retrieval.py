@@ -70,3 +70,21 @@ def test_k_limits_results_and_blank_question(
 @pytest.mark.db
 def test_empty_base_returns_nothing(db_conn: psycopg.Connection, fake_embedder: FakeEmbedder):
     assert retrieve(db_conn, fake_embedder, "anything", k=3) == []
+
+
+class StubTranslator:
+    def __init__(self, variants: list[str]) -> None:
+        self._variants = variants
+
+    def variants(self, question: str) -> list[str]:
+        return self._variants
+
+
+@pytest.mark.db
+def test_translated_variant_finds_document_in_another_language(
+    db_conn: psycopg.Connection, fake_embedder: FakeEmbedder, kb: Path
+):
+    index_folder(db_conn, fake_embedder, kb)
+    translator = StubTranslator(["Backups are kept for 35 days"])
+    found = retrieve(db_conn, fake_embedder, "Сколько хранятся резервные копии?", k=1, translator=translator)
+    assert found[0].doc_id == "backup"

@@ -28,7 +28,7 @@ services:
       DATABASE_URL: postgresql://rfp:rfp@db:5432/rfp
       KB_DIR: /data/kb
     volumes:
-      - ./data/kb:/data/kb:ro
+      - ./data/kb:/data/kb
     ports:
       - "8000:8000"
     healthcheck:

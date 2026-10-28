@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page__head"><h1>{{ title }}</h1></div>
+<div class="msg msg--error" role="alert">{{ message }}</div>
+<a class="btn btn--tertiary" href="/jobs">К опросникам</a>
+{% endblock %}

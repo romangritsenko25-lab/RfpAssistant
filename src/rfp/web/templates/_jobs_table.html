@@ -1,0 +1,41 @@
+<div class="table-wrap" id="jobs-table"
+     {% if active_jobs %}hx-get="/jobs/table?page={{ page }}" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
+  {% if jobs %}
+  <table class="data">
+    <thead>
+      <tr>
+        <th scope="col">Файл</th>
+        <th scope="col">Загружен</th>
+        <th scope="col">Статус</th>
+        <th scope="col">Прогресс</th>
+        <th scope="col">Готово</th>
+        <th scope="col">На проверку</th>
+        <th scope="col">Нет данных</th>
+        <th scope="col" class="col-act"><span class="visually-hidden">Действия</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for job in jobs %}
+      {% set c = counts[job.id] %}
+      {% set label, kind = JOB_STATUS[job.status] %}
+      <tr>
+        <td><a href="/jobs/{{ job.id }}">{{ job.filename }}</a></td>
+        <td class="nowrap">{{ job.created_at|dt }}<div class="caption muted">{{ job.created_by }}</div></td>
+        <td><span class="tag {% if kind %}tag--{{ kind }}{% endif %}">{{ label }}</span></td>
+        <td class="num nowrap">{{ job.done }} / {{ job.total }}
+          <span class="bar bar--sm" role="presentation"><i style="width:{{ (100 * job.done / job.total) if job.total else 0 }}%"></i></span></td>
+        <td class="num">{{ c.ready }}</td>
+        <td class="num">{{ c.review }}</td>
+        <td class="num">{{ c.no_data }}</td>
+        <td class="col-act">
+          <a class="btn btn--ghost" href="/jobs/{{ job.id }}">Проверить</a>
+          {% if job.status == 'done' %}<a class="btn btn--ghost" href="/jobs/{{ job.id }}/export">Выгрузить</a>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="table-empty">Пока нет опросников. Загрузите первый файл выше.</p>
+  {% endif %}
+</div>

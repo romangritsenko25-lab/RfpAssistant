@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}База знаний{% endblock %}
+{% block content %}
+<div class="page__head">
+  <div>
+    <h1>База знаний</h1>
+    <p class="muted">Документы, из которых берутся ответы. Файл с тем же именем заменяет прежнюю версию.</p>
+  </div>
+  <form method="post" action="/knowledge/reindex" class="inline">
+    <button class="btn btn--tertiary" type="submit"
+            title="Сверить индекс с папкой базы знаний: добавить новые файлы, убрать удалённые">Переиндексировать</button>
+  </form>
+</div>
+
+<section class="panel" aria-labelledby="kb-upload-title">
+  <div class="panel__head"><h2 id="kb-upload-title">Загрузить документ</h2></div>
+  <div class="panel__body">
+    {% if form_error %}<div class="msg msg--error" role="alert">Не удалось загрузить документ: {{ form_error }}</div>{% endif %}
+    <form method="post" action="/knowledge/upload" enctype="multipart/form-data">
+      <div class="field">
+        <label for="kb-file">Файл (DOCX, PDF, Markdown или XLSX)</label>
+        <input class="input" id="kb-file" name="file" type="file" accept=".docx,.pdf,.md,.markdown,.xlsx" required>
+      </div>
+      <div class="btn-row" style="margin-top:16px">
+        <button class="btn btn--primary" type="submit">Загрузить и проиндексировать</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section style="margin-top:32px" aria-labelledby="docs-title">
+  <h2 id="docs-title" style="margin-bottom:12px">Документы <span class="muted num">({{ documents|length }})</span></h2>
+  <div class="table-wrap">
+    {% if documents %}
+    <table class="data">
+      <thead>
+        <tr>
+          <th scope="col">Код</th>
+          <th scope="col">Название</th>
+          <th scope="col">Язык</th>
+          <th scope="col">Актуален на</th>
+          <th scope="col">Чанков</th>
+          <th scope="col">Проиндексирован</th>
+          <th scope="col" class="col-act"><span class="visually-hidden">Действия</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in documents %}
+        <tr>
+          <td class="nowrap">{{ d.doc_id }}{% if d.kind == 'reference' %} <span class="tag tag--info">эталон</span>{% endif %}</td>
+          <td>{{ d.title }}{% if d.filename %}<div class="caption muted">{{ d.filename }}</div>{% endif %}</td>
+          <td>{{ d.language|upper }}</td>
+          <td class="nowrap num">{{ d.effective_date.strftime('%d.%m.%Y') if d.effective_date else '—' }}</td>
+          <td class="num">{{ d.chunks }}</td>
+          <td class="nowrap num">{{ d.indexed_at|dt }}</td>
+          <td class="col-act">
+            <form method="post" action="/knowledge/{{ d.doc_id|urlencode }}/delete" class="inline"
+                  data-confirm="Удалить «{{ d.doc_id }}» из базы знаний? Файл тоже будет удалён.">
+              <button class="btn btn--ghost" type="submit">Удалить</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="table-empty">База знаний пуста. Загрузите документы выше.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

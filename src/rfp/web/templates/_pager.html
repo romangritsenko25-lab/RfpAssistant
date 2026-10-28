@@ -1,0 +1,10 @@
+{# Expects: first, last, total, prev_url, next_url #}
+<nav class="pager" aria-label="Страницы">
+  <span class="muted num">{% if total %}{{ first }}–{{ last }} из {{ total }}{% else %}Записей нет{% endif %}</span>
+  <span class="btn-row">
+    {% if prev_url %}<a class="btn btn--tertiary" href="{{ prev_url }}">Назад</a>
+    {% else %}<span class="btn" aria-disabled="true">Назад</span>{% endif %}
+    {% if next_url %}<a class="btn btn--tertiary" href="{{ next_url }}">Вперёд</a>
+    {% else %}<span class="btn" aria-disabled="true">Вперёд</span>{% endif %}
+  </span>
+</nav>

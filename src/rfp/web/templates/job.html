@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ job.filename }}{% endblock %}
+{% block content %}
+<div class="page__head">
+  <div>
+    <p class="crumbs caption"><a href="/jobs">Опросники</a> / №{{ job.id }}</p>
+    <h1>{{ job.filename }}</h1>
+    <p class="muted caption">Загружен {{ job.created_at|dt }}, {{ job.created_by }}</p>
+  </div>
+  <div class="btn-row">
+    {% if job.status in ('done', 'failed') and job.done %}
+    <a class="btn btn--primary" href="/jobs/{{ job.id }}/export">Выгрузить заполненный файл</a>
+    {% else %}
+    <span class="btn" aria-disabled="true" title="Доступно, когда обработка завершится">Выгрузить заполненный файл</span>
+    {% endif %}
+  </div>
+</div>
+
+{% if job.status == 'failed' %}
+<div class="msg msg--error" role="alert">Обработка остановилась с ошибкой: {{ job.error or 'причина не указана' }}. Уже готовые ответы сохранены.</div>
+{% endif %}
+{% if job.status in ('queued', 'running') %}
+  {% include "_progress.html" %}
+{% endif %}
+
+{% include "_summary.html" %}
+
+<div class="table-wrap" style="margin-top:16px">
+  {% if items %}
+  <table class="data">
+    <thead>
+      <tr>
+        <th scope="col" class="col-num">№</th>
+        <th scope="col">Вопрос</th>
+        <th scope="col">Ответ</th>
+        <th scope="col" class="col-status">Статус</th>
+        <th scope="col" class="col-conf">Уверенность</th>
+        <th scope="col" class="col-src">Источники</th>
+        <th scope="col" class="col-act"><span class="visually-hidden">Действия</span></th>
+      </tr>
+    </thead>
+    {% set job_id = job.id %}
+    {% for item in items %}{% include "_item.html" %}{% endfor %}
+  </table>
+  {% else %}
+  <p class="table-empty">{% if counts.all %}Нет вопросов с таким статусом. <a href="/jobs/{{ job.id }}">Показать все</a>{% else %}В файле нет вопросов.{% endif %}</p>
+  {% endif %}
+</div>
+{% endblock %}
