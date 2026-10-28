@@ -1,0 +1,1009 @@
+{
+ "meta": {
+  "author": "Steppelight Technologies (fictional company)",
+  "created": "2026-10-28T00:00:00",
+  "questionnaire_title": "Security questionnaire (dev set)",
+  "rfp_title": "RFP DEMO-2026-017 (dev set)"
+ },
+ "rfp_layout": [
+  {
+   "type": "heading",
+   "level": 1,
+   "text": "Запрос предложений № DEMO-2026-017"
+  },
+  {
+   "type": "paragraph",
+   "text": "на сопровождение и развитие информационной системы электронного документооборота"
+  },
+  {
+   "type": "paragraph",
+   "text": "Заказчик: ТОО «Демо Заказчик» (вымышленная организация). Документ подготовлен для демонстрации и не является реальной закупкой."
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "text": "1. Общие положения"
+  },
+  {
+   "type": "paragraph",
+   "text": "Настоящий документ определяет требования к участникам и содержанию предложений. Предложения принимаются в электронном виде до 30 ноября 2026 года, 18:00 по времени Астаны. Участники вправе направить вопросы по документации не позднее чем за 5 рабочих дней до окончания приёма предложений."
+  },
+  {
+   "type": "paragraph",
+   "text": "Предложение оценивается по критериям: соответствие требованиям — 50%, опыт — 25%, качество сопровождения — 15%, стоимость — 10%. Заказчик вправе запросить дополнительные пояснения и подтверждающие документы."
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "text": "2. Требования к участнику"
+  },
+  {
+   "type": "paragraph",
+   "text": "В предложении необходимо дать ответы на следующие пункты. Ответы должны быть краткими и содержать ссылки на подтверждающие документы."
+  },
+  {
+   "type": "question",
+   "id": "R-001"
+  },
+  {
+   "type": "question",
+   "id": "R-002"
+  },
+  {
+   "type": "question",
+   "id": "R-003"
+  },
+  {
+   "type": "question",
+   "id": "R-004"
+  },
+  {
+   "type": "question",
+   "id": "R-005"
+  },
+  {
+   "type": "question",
+   "id": "R-006"
+  },
+  {
+   "type": "paragraph",
+   "text": "Предложения, не содержащие ответов на обязательные пункты, могут быть отклонены без рассмотрения по существу."
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "text": "3. Условия сотрудничества"
+  },
+  {
+   "type": "paragraph",
+   "text": "Срок действия договора — 24 месяца с возможностью продления. Оплата производится ежемесячно по актам выполненных работ в течение 15 календарных дней после подписания."
+  },
+  {
+   "type": "question",
+   "id": "R-007"
+  },
+  {
+   "type": "question",
+   "id": "R-008"
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "text": "4. Технические требования"
+  },
+  {
+   "type": "paragraph",
+   "text": "Ответы на пункты 9–12 приведите в таблице ниже, сохранив нумерацию. Ответы на пункты 13–15 приводятся в свободной форме на любом из языков документа."
+  },
+  {
+   "type": "table",
+   "header": [
+    "№",
+    "Требование"
+   ],
+   "ids": [
+    "R-009",
+    "R-010",
+    "R-011",
+    "R-012"
+   ]
+  },
+  {
+   "type": "paragraph",
+   "text": ""
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "text": "5. Прочие сведения"
+  },
+  {
+   "type": "paragraph",
+   "text": "Все сведения, полученные участниками в ходе подготовки предложения, считаются конфиденциальными. Заказчик не несёт расходов, связанных с подготовкой предложений."
+  },
+  {
+   "type": "question",
+   "id": "R-013"
+  },
+  {
+   "type": "question",
+   "id": "R-014"
+  },
+  {
+   "type": "question",
+   "id": "R-015"
+  },
+  {
+   "type": "paragraph",
+   "text": "Контактное лицо Заказчика по вопросам закупки указывается в приглашении к участию."
+  }
+ ],
+ "questions": [
+  {
+   "id": "Q-001",
+   "file": "questionnaire.xlsx",
+   "domain": "Access Control",
+   "language": "ru",
+   "question": "Требуется ли многофакторная аутентификация для удалённого доступа и административных консолей?",
+   "gold_answer": "Да. MFA обязательна для удалённых подключений, административных консолей и производственных сред; допустимы TOTP и ключи FIDO2, SMS не используются.",
+   "sources": [
+    {
+     "doc_id": "SEC-001",
+     "section": "Аутентификация"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-002",
+   "file": "questionnaire.xlsx",
+   "domain": "Access Control",
+   "language": "en",
+   "question": "What is the minimum password length required by your policy?",
+   "gold_answer": "14 characters. Periodic forced password change is not applied; passwords are changed on suspected compromise.",
+   "sources": [
+    {
+     "doc_id": "SEC-001",
+     "section": "Аутентификация"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-003",
+   "file": "questionnaire.xlsx",
+   "domain": "Access Control",
+   "language": "kk",
+   "question": "Қызметкер жұмыстан шыққанда оның қолжетімділігі қанша уақыт ішінде жойылады?",
+   "gold_answer": "Бұйрық шыққан сәттен бастап 4 сағаттан кешіктірмей.",
+   "sources": [
+    {
+     "doc_id": "SEC-001",
+     "section": "Жизненный цикл учётных записей"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-004",
+   "file": "questionnaire.xlsx",
+   "domain": "Access Control",
+   "language": "ru",
+   "question": "Как часто пересматриваются права доступа и сколько хранятся результаты пересмотра?",
+   "gold_answer": "Пересмотр выполняется ежеквартально; результаты хранятся 3 года.",
+   "sources": [
+    {
+     "doc_id": "SEC-001",
+     "section": "Жизненный цикл учётных записей"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-005",
+   "file": "questionnaire.xlsx",
+   "domain": "Access Control",
+   "language": "en",
+   "question": "Are privileged sessions recorded, and for how long are the recordings kept?",
+   "gold_answer": "Yes, all privileged sessions are recorded and the recordings are kept for 12 months.",
+   "sources": [
+    {
+     "doc_id": "SEC-001",
+     "section": "Привилегированный доступ"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-006",
+   "file": "questionnaire.xlsx",
+   "domain": "Encryption",
+   "language": "ru",
+   "question": "Каким алгоритмом шифруются данные при хранении?",
+   "gold_answer": "AES-256 (базы данных, файловые хранилища, резервные копии, диски ноутбуков).",
+   "sources": [
+    {
+     "doc_id": "SEC-002",
+     "section": "Шифрование данных при хранении"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-007",
+   "file": "questionnaire.xlsx",
+   "domain": "Encryption",
+   "language": "kk",
+   "question": "Сыртқы қосылымдар үшін TLS-тің қандай нұсқалары қолданылады?",
+   "gold_answer": "TLS 1.2-ден төмен емес, ұсынылатын нұсқасы — TLS 1.3. SSL 3.0, TLS 1.0 және TLS 1.1 өшірілген.",
+   "sources": [
+    {
+     "doc_id": "SEC-002",
+     "section": "Шифрование данных при передаче"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-008",
+   "file": "questionnaire.xlsx",
+   "domain": "Encryption",
+   "language": "kk",
+   "question": "Шифрлау кілттері қаншалықты жиі ауыстырылады?",
+   "gold_answer": "Мастер-кілттер және деректер кілттері кемінде 12 айда бір рет ауыстырылады.",
+   "sources": [
+    {
+     "doc_id": "SEC-002",
+     "section": "Управление ключами"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-009",
+   "file": "questionnaire.xlsx",
+   "domain": "Encryption",
+   "language": "ru",
+   "question": "Поддерживается ли шифрование с ключами, управляемыми заказчиком (BYOK/CMK)?",
+   "gold_answer": null,
+   "sources": [],
+   "conflict": false
+  },
+  {
+   "id": "Q-010",
+   "file": "questionnaire.xlsx",
+   "domain": "Backup & Recovery",
+   "language": "ru",
+   "question": "Каковы целевые показатели RPO и RTO для производственных систем?",
+   "gold_answer": "По актуальной политике от 15.04.2026: RPO 1 час, RTO 4 часа. Более старый регламент от 01.06.2023 указывает RPO 4 часа и RTO 8 часов. Документы противоречат друг другу: ответ требует проверки, приоритет у более новой редакции.",
+   "sources": [
+    {
+     "doc_id": "SEC-003",
+     "section": "Целевые показатели"
+    },
+    {
+     "doc_id": "SEC-004",
+     "section": "Цели"
+    }
+   ],
+   "conflict": true
+  },
+  {
+   "id": "Q-011",
+   "file": "questionnaire.xlsx",
+   "domain": "Business Continuity",
+   "language": "en",
+   "question": "Where is the disaster recovery site located?",
+   "gold_answer": "In Almaty. Systems are restored at the backup site; the recovery time objective (RTO) is 4 hours.",
+   "sources": [
+    {
+     "doc_id": "BCP-001",
+     "section": "Резервная площадка"
+    },
+    {
+     "doc_id": "SLA-003",
+     "section": "Апаттан кейін қалпына келтіру"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-012",
+   "file": "questionnaire.xlsx",
+   "domain": "Incident Management",
+   "language": "ru",
+   "question": "В какой срок заказчик уведомляется о подтверждённом инциденте, затрагивающем его данные?",
+   "gold_answer": "Не позднее 24 часов после подтверждения инцидента.",
+   "sources": [
+    {
+     "doc_id": "SEC-005",
+     "section": "Notification"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-013",
+   "file": "questionnaire.xlsx",
+   "domain": "Incident Management",
+   "language": "kk",
+   "question": "Инциденттерге жауап беру тобы тәулік бойы жұмыс істей ме?",
+   "gold_answer": "Иә, CSIRT тобы тәулік бойы, аптасына 7 күн кезекшілік етеді.",
+   "sources": [
+    {
+     "doc_id": "SEC-005",
+     "section": "Scope and roles"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-014",
+   "file": "questionnaire.xlsx",
+   "domain": "Incident Management",
+   "language": "kk",
+   "question": "Инциденттен кейінгі талдау қандай мерзімде өткізіледі?",
+   "gold_answer": "S1 және S2 инциденті жабылғаннан кейін 5 жұмыс күні ішінде.",
+   "sources": [
+    {
+     "doc_id": "SEC-005",
+     "section": "Post-incident activities"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-015",
+   "file": "questionnaire.xlsx",
+   "domain": "Incident Management",
+   "language": "ru",
+   "question": "Есть ли у компании киберстрахование и на какую сумму?",
+   "gold_answer": null,
+   "sources": [],
+   "conflict": false
+  },
+  {
+   "id": "Q-016",
+   "file": "questionnaire.xlsx",
+   "domain": "Vulnerability Management",
+   "language": "en",
+   "question": "What are the remediation deadlines for critical and high vulnerabilities?",
+   "gold_answer": "Critical vulnerabilities within 7 days, high within 30 days (medium 90 days, low in the next planned release).",
+   "sources": [
+    {
+     "doc_id": "SEC-006",
+     "section": "Жою мерзімдері"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-017",
+   "file": "questionnaire.xlsx",
+   "domain": "Vulnerability Management",
+   "language": "ru",
+   "question": "Какая организация проводит внешнее тестирование на проникновение?",
+   "gold_answer": null,
+   "sources": [],
+   "conflict": false
+  },
+  {
+   "id": "Q-018",
+   "file": "questionnaire.xlsx",
+   "domain": "Vulnerability Management",
+   "language": "kk",
+   "question": "Инфрақұрылым осалдықтарға қаншалықты жиі сканерленеді?",
+   "gold_answer": "Апта сайын; сыртқы тәуелсіз тестілеу жылына бір рет жүргізіледі.",
+   "sources": [
+    {
+     "doc_id": "SEC-006",
+     "section": "Іздеу және сканерлеу"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-019",
+   "file": "questionnaire.xlsx",
+   "domain": "Vulnerability Management",
+   "language": "en",
+   "question": "Do you operate a public bug bounty program?",
+   "gold_answer": null,
+   "sources": [],
+   "conflict": false
+  },
+  {
+   "id": "Q-020",
+   "file": "questionnaire.xlsx",
+   "domain": "Supplier Management",
+   "language": "kk",
+   "question": "Қосалқы өңдеушіні ауыстырар алдында тапсырыс берушілер хабардар етіле ме?",
+   "gold_answer": "Иә, кемінде 30 күн бұрын жазбаша хабарланады; тапсырыс беруші осы мерзім ішінде қарсылық білдіре алады.",
+   "sources": [
+    {
+     "doc_id": "SEC-007",
+     "section": "Subprocessors"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-021",
+   "file": "questionnaire.xlsx",
+   "domain": "Supplier Management",
+   "language": "ru",
+   "question": "Как часто пересматриваются поставщики с высоким уровнем риска (Tier 1)?",
+   "gold_answer": "Поставщики Tier 1 пересматриваются ежегодно (Tier 2 — раз в два года).",
+   "sources": [
+    {
+     "doc_id": "SEC-007",
+     "section": "Ongoing monitoring"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-022",
+   "file": "questionnaire.xlsx",
+   "domain": "Security Training",
+   "language": "ru",
+   "question": "В какой срок новый сотрудник проходит вводное обучение по информационной безопасности?",
+   "gold_answer": "В течение первых 10 рабочих дней; до окончания обучения доступ к производственным системам не выдаётся.",
+   "sources": [
+    {
+     "doc_id": "SEC-008",
+     "section": "Жалпы талаптар"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-023",
+   "file": "questionnaire.xlsx",
+   "domain": "Security Training",
+   "language": "kk",
+   "question": "Фишингке қарсы жаттығулар қаншалықты жиі өткізіледі?",
+   "gold_answer": "Тоқсан сайын; жалған сілтемені басқан қызметкерлердің үлесі 5%-дан аспауы тиіс.",
+   "sources": [
+    {
+     "doc_id": "SEC-008",
+     "section": "Фишингке қарсы жаттығулар"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-024",
+   "file": "questionnaire.xlsx",
+   "domain": "Security Training",
+   "language": "kk",
+   "question": "Жыл сайынғы қауіпсіздік тестінен өтудің ең төменгі балы қандай?",
+   "gold_answer": "80%; өтпегендер оқуды 14 күн ішінде қайта тапсырады.",
+   "sources": [
+    {
+     "doc_id": "SEC-008",
+     "section": "Жыл сайынғы оқыту"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-025",
+   "file": "questionnaire.xlsx",
+   "domain": "Logging & Monitoring",
+   "language": "ru",
+   "question": "Как долго хранятся журналы аудита доступа?",
+   "gold_answer": "12 месяцев в системе SIEM, хранение неизменяемое.",
+   "sources": [
+    {
+     "doc_id": "SEC-009",
+     "section": "Сроки хранения"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-026",
+   "file": "questionnaire.xlsx",
+   "domain": "Logging & Monitoring",
+   "language": "kk",
+   "question": "Компанияда тәулік бойы жұмыс істейтін қауіпсіздік мониторингі орталығы (SOC) бар ма?",
+   "gold_answer": "Иә, меншікті SOC 24x7 режимінде жұмыс істейді, құрамында алты талдаушы бар.",
+   "sources": [
+    {
+     "doc_id": "SEC-009",
+     "section": "Мониторинг"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-027",
+   "file": "questionnaire.xlsx",
+   "domain": "Logging & Monitoring",
+   "language": "ru",
+   "question": "Используется ли система защиты от утечек данных (DLP)?",
+   "gold_answer": null,
+   "sources": [],
+   "conflict": false
+  },
+  {
+   "id": "Q-028",
+   "file": "questionnaire.xlsx",
+   "domain": "Data Protection",
+   "language": "ru",
+   "question": "Где хранятся персональные данные граждан Казахстана?",
+   "gold_answer": "На серверах на территории Казахстана: основная площадка в Астане (Tier III), резервная в Алматы.",
+   "sources": [
+    {
+     "doc_id": "CERT-004",
+     "section": "Локализация данных"
+    },
+    {
+     "doc_id": "SLA-003",
+     "section": "Орналастыру"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-029",
+   "file": "questionnaire.xlsx",
+   "domain": "Data Protection",
+   "language": "en",
+   "question": "Do you provide a data processing agreement template pre-approved under GDPR?",
+   "gold_answer": null,
+   "sources": [],
+   "conflict": false
+  },
+  {
+   "id": "Q-030",
+   "file": "questionnaire.xlsx",
+   "domain": "Data Protection",
+   "language": "kk",
+   "question": "Шарт аяқталғаннан кейін тапсырыс беруші деректері қанша уақытта жойылады?",
+   "gold_answer": "Өндірістік жүйелерден 30 күн ішінде, резервтік көшірмелерден — олардың сақтау мерзімі аяқталғанда; сұрау бойынша жазбаша растау беріледі.",
+   "sources": [
+    {
+     "doc_id": "SEC-009",
+     "section": "Удаление данных заказчика"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-031",
+   "file": "questionnaire.xlsx",
+   "domain": "SDLC",
+   "language": "ru",
+   "question": "Проводится ли моделирование угроз для новых систем?",
+   "gold_answer": "Да, на этапе проектирования для новых систем и значительных изменений.",
+   "sources": [
+    {
+     "doc_id": "DEV-001",
+     "section": "Безопасность в процессе разработки"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-032",
+   "file": "questionnaire.xlsx",
+   "domain": "SDLC",
+   "language": "kk",
+   "question": "Қауіпсіздік үшін маңызды код өзгерістеріне қанша бекіту қажет?",
+   "gold_answer": "Екі бекіту (аутентификация, авторизация, криптография, төлем логикасы және инфрақұрылым коды үшін).",
+   "sources": [
+    {
+     "doc_id": "DEV-002",
+     "section": "Number of approvers"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-033",
+   "file": "questionnaire.xlsx",
+   "domain": "SDLC",
+   "language": "ru",
+   "question": "Какое минимальное покрытие тестами требуется для нового кода?",
+   "gold_answer": "Не ниже 80%.",
+   "sources": [
+    {
+     "doc_id": "DEV-001",
+     "section": "Определение готовности"
+    },
+    {
+     "doc_id": "DEV-002",
+     "section": "Automated checks"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-034",
+   "file": "questionnaire.xlsx",
+   "domain": "SDLC",
+   "language": "ru",
+   "question": "За какое время выполняется откат релиза?",
+   "gold_answer": "Целевое время отката — не более 15 минут.",
+   "sources": [
+    {
+     "doc_id": "DEV-003",
+     "section": "Откат"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-035",
+   "file": "questionnaire.xlsx",
+   "domain": "Change Management",
+   "language": "en",
+   "question": "When are planned production releases performed?",
+   "gold_answer": "Tuesday to Thursday between 22:00 and 02:00 Astana time (UTC+5); customers are notified at least 5 days in advance.",
+   "sources": [
+    {
+     "doc_id": "DEV-005",
+     "section": "Release windows"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-036",
+   "file": "questionnaire.xlsx",
+   "domain": "Certifications",
+   "language": "ru",
+   "question": "Есть ли у компании сертификат ISO/IEC 27001 и каков срок его действия?",
+   "gold_answer": "Да. Сертификат ISO/IEC 27001:2022 выдан 12.11.2024 и действует до 11.11.2027.",
+   "sources": [
+    {
+     "doc_id": "CERT-001",
+     "section": "Сертификаты"
+    },
+    {
+     "doc_id": "CERT-002",
+     "section": "Certification"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-037",
+   "file": "questionnaire.xlsx",
+   "domain": "Certifications",
+   "language": "en",
+   "question": "Do you hold a SOC 2 Type II report?",
+   "gold_answer": null,
+   "sources": [],
+   "conflict": false
+  },
+  {
+   "id": "Q-038",
+   "file": "questionnaire.xlsx",
+   "domain": "Certifications",
+   "language": "ru",
+   "question": "Какие сертификаты находятся в процессе получения?",
+   "gold_answer": "ISO/IEC 20000-1:2018 (аудит запланирован на 2 квартал 2027 года) и ISO/IEC 27701:2019 (4 квартал 2027 года).",
+   "sources": [
+    {
+     "doc_id": "CERT-001",
+     "section": "Сертификаты"
+    },
+    {
+     "doc_id": "CERT-003",
+     "section": "Процесте тұрған сертификаттар"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "Q-039",
+   "file": "questionnaire.xlsx",
+   "domain": "Support & SLA",
+   "language": "ru",
+   "question": "Какова стоимость тарифа Premium в месяц?",
+   "gold_answer": null,
+   "sources": [],
+   "conflict": false
+  },
+  {
+   "id": "Q-040",
+   "file": "questionnaire.xlsx",
+   "domain": "Support & SLA",
+   "language": "en",
+   "question": "What service credit applies if monthly availability is between 95.0% and 99.0%?",
+   "gold_answer": "A credit of 15% of the monthly fee; the credit is capped at 30% of the monthly fee.",
+   "sources": [
+    {
+     "doc_id": "SLA-004",
+     "section": "Кредит мөлшері"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "R-001",
+   "file": "rfp.docx",
+   "domain": null,
+   "language": "ru",
+   "question": "Участник должен подтвердить наличие действующего сертификата ISO/IEC 27001 и указать срок его действия.",
+   "gold_answer": "Сертификат ISO/IEC 27001:2022 получен 12.11.2024, действует до 11.11.2027.",
+   "sources": [
+    {
+     "doc_id": "CERT-001",
+     "section": "Сертификаты"
+    },
+    {
+     "doc_id": "CERT-002",
+     "section": "Certification"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "R-002",
+   "file": "rfp.docx",
+   "domain": null,
+   "language": "ru",
+   "question": "Опишите опыт разработки мобильного банковского приложения: сроки, состав команды, достигнутую нагрузку.",
+   "gold_answer": "Проект для «Сарыарка Финанс»: 14 месяцев (2023–2024), команда 18 человек, до 1200 транзакций в секунду, 1,2 млн клиентов.",
+   "sources": [
+    {
+     "doc_id": "CASE-001",
+     "section": "Заказчик и задача"
+    },
+    {
+     "doc_id": "CASE-001",
+     "section": "Команда"
+    },
+    {
+     "doc_id": "CASE-001",
+     "section": "Результаты"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "R-003",
+   "file": "rfp.docx",
+   "domain": null,
+   "language": "ru",
+   "question": "Укажите время первой реакции на обращение критического приоритета (P1).",
+   "gold_answer": "По матрице эскалации от 10.02.2026 — 15 минут. Типовое SLA в редакции от 01.02.2024 указывает 30 минут. Документы противоречат друг другу: ответ требует проверки, приоритет у более новой редакции.",
+   "sources": [
+    {
+     "doc_id": "SUP-002",
+     "section": "Response targets"
+    },
+    {
+     "doc_id": "SLA-001",
+     "section": "Время реакции"
+    }
+   ],
+   "conflict": true
+  },
+  {
+   "id": "R-004",
+   "file": "rfp.docx",
+   "domain": null,
+   "language": "ru",
+   "question": "Укажите гарантированный уровень доступности для тарифа Premium и порядок компенсаций за его нарушение.",
+   "gold_answer": "99,9% в месяц. При нарушении предоставляются сервисные кредиты (5%, 15% или 30% месячного платежа в зависимости от фактической доступности), не более 30%.",
+   "sources": [
+    {
+     "doc_id": "SLA-001",
+     "section": "Доступность"
+    },
+    {
+     "doc_id": "SLA-002",
+     "section": "Service tiers"
+    },
+    {
+     "doc_id": "SLA-004",
+     "section": "Кредит мөлшері"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "R-005",
+   "file": "rfp.docx",
+   "domain": null,
+   "language": "ru",
+   "question": "Опишите организацию технической поддержки: линии, часы работы, языки обращения.",
+   "gold_answer": "Три линии (L1–L3), 20 специалистов. Стандартная поддержка пн–пт 9:00–18:00 (UTC+5); для Premium и Enterprise 24x7 по P1 и P2. Языки — русский, казахский, английский.",
+   "sources": [
+    {
+     "doc_id": "SUP-001",
+     "section": "Уровни поддержки"
+    },
+    {
+     "doc_id": "SUP-001",
+     "section": "Часы работы"
+    },
+    {
+     "doc_id": "SUP-001",
+     "section": "Каналы обращения"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "R-006",
+   "file": "rfp.docx",
+   "domain": null,
+   "language": "ru",
+   "question": "Укажите, где физически размещаются серверы с данными заказчика.",
+   "gold_answer": "В центре обработки данных уровня Tier III в Астане; резервная площадка — в Алматы.",
+   "sources": [
+    {
+     "doc_id": "SLA-003",
+     "section": "Орналастыру"
+    },
+    {
+     "doc_id": "CERT-004",
+     "section": "Локализация данных"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "R-007",
+   "file": "rfp.docx",
+   "domain": null,
+   "language": "ru",
+   "question": "Приведите почасовые ставки специалистов по ролям (разработчик, тестировщик, DevOps-инженер).",
+   "gold_answer": null,
+   "sources": [],
+   "conflict": false
+  },
+  {
+   "id": "R-008",
+   "file": "rfp.docx",
+   "domain": null,
+   "language": "ru",
+   "question": "Опишите процесс рецензирования кода и необходимое число рецензентов.",
+   "gold_answer": "Прямые коммиты в основную ветку запрещены; одно одобрение для обычных изменений, два — для критичных к безопасности; ответ рецензента в течение 1 рабочего дня.",
+   "sources": [
+    {
+     "doc_id": "DEV-002",
+     "section": "Mandatory review"
+    },
+    {
+     "doc_id": "DEV-002",
+     "section": "Number of approvers"
+    },
+    {
+     "doc_id": "DEV-002",
+     "section": "Size and timing"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "R-009",
+   "file": "rfp.docx",
+   "domain": null,
+   "language": "en",
+   "question": "Describe the CI/CD tooling and how deployments to production are approved.",
+   "gold_answer": "Pipelines run in GitLab CI; production deployment requires confirmation of the product owner and the responsible operations engineer.",
+   "sources": [
+    {
+     "doc_id": "DEV-003",
+     "section": "Конвейер"
+    },
+    {
+     "doc_id": "DEV-003",
+     "section": "Подтверждение выпуска"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "R-010",
+   "file": "rfp.docx",
+   "domain": null,
+   "language": "en",
+   "question": "Describe the measures protecting data in transit and at rest.",
+   "gold_answer": "At rest: AES-256 encryption with keys in a KMS/HSM. In transit: TLS 1.2 or higher (TLS 1.3 preferred), mTLS between internal services.",
+   "sources": [
+    {
+     "doc_id": "SEC-002",
+     "section": "Шифрование данных при хранении"
+    },
+    {
+     "doc_id": "SEC-002",
+     "section": "Шифрование данных при передаче"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "R-011",
+   "file": "rfp.docx",
+   "domain": null,
+   "language": "en",
+   "question": "State the total number of employees and their distribution by role.",
+   "gold_answer": "280 employees as of 1 January 2026: 160 developers, 30 QA, 28 DevOps/SRE, 22 data and AI, 20 support, 20 management and administration.",
+   "sources": [
+    {
+     "doc_id": "ORG-001",
+     "section": "Общие сведения"
+    },
+    {
+     "doc_id": "ORG-001",
+     "section": "Состав команды"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "R-012",
+   "file": "rfp.docx",
+   "domain": null,
+   "language": "en",
+   "question": "Provide at least three customer references from the public sector, with contact persons.",
+   "gold_answer": null,
+   "sources": [],
+   "conflict": false
+  },
+  {
+   "id": "R-013",
+   "file": "rfp.docx",
+   "domain": null,
+   "language": "kk",
+   "question": "Жобаны орындау кезінде қолданылатын негізгі технологиялар стегін сипаттаңыз.",
+   "gold_answer": "Java 21 (Spring Boot 3), .NET 8, Python 3.12, TypeScript/React 18, PostgreSQL 16, Kafka, Kubernetes 1.30, Terraform; бұлт — AWS, Azure және Қазақстандағы деректер орталықтары.",
+   "sources": [
+    {
+     "doc_id": "SVC-002",
+     "section": "Programming languages and frameworks"
+    },
+    {
+     "doc_id": "SVC-002",
+     "section": "Data and messaging"
+    },
+    {
+     "doc_id": "SVC-002",
+     "section": "Cloud and infrastructure"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "R-014",
+   "file": "rfp.docx",
+   "domain": null,
+   "language": "kk",
+   "question": "Апаттан кейін қалпына келтіру жоспарын және қалпына келтіру уақытының мақсатын (RTO) көрсетіңіз.",
+   "gold_answer": "RTO — 4 сағат; резервтік алаң Алматыда; апаттан қалпына келтіру жаттығуы жылына бір рет, үстел басындағы жаттығу жылына екі рет.",
+   "sources": [
+    {
+     "doc_id": "BCP-001",
+     "section": "Область действия"
+    },
+    {
+     "doc_id": "BCP-001",
+     "section": "Резервная площадка"
+    },
+    {
+     "doc_id": "BCP-001",
+     "section": "Проверка плана"
+    }
+   ],
+   "conflict": false
+  },
+  {
+   "id": "R-015",
+   "file": "rfp.docx",
+   "domain": null,
+   "language": "kk",
+   "question": "Коммерциялық ұсыныста берілетін кепілдік мерзімін (гарантия) көрсетіңіз.",
+   "gold_answer": null,
+   "sources": [],
+   "conflict": false
+  }
+ ]
+}
