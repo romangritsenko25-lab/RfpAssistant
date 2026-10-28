@@ -32,6 +32,19 @@ class Chunk(BaseModel):
     text: str
 
 
+class RetrievedChunk(BaseModel):
+    """A knowledge-base chunk returned by retrieval; ``chunk_id`` is the database key."""
+
+    chunk_id: int
+    doc_id: str
+    title: str
+    heading: str
+    language: str
+    effective_date: date | None = None
+    text: str
+    score: float
+
+
 class Location(BaseModel):
     """Where a question lives in the source file; which fields are set depends on the format.
 
@@ -62,6 +75,7 @@ class Citation(BaseModel):
     doc_id: str
     section: str
     snippet: str
+    chunk_id: int | None = None
 
 
 AnswerStatus = Literal["answered", "no_data", "needs_review"]

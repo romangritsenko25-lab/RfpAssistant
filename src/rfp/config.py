@@ -16,6 +16,7 @@ class Settings(BaseSettings):
         default=None, validation_alias=AliasChoices("LLM_API_KEY", "OPENAI_API_KEY")
     )
     llm_model: str = "gpt-4o-mini"
+    judge_model: str = "gpt-4o"
     embedding_model: str = "text-embedding-3-small"
     embedding_dim: int = Field(default=1536, gt=0)
     kb_dir: Path = Path("data/kb")

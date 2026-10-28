@@ -57,3 +57,12 @@ def test_empty_values_from_env_example_use_defaults(monkeypatch: pytest.MonkeyPa
     monkeypatch.setenv("POLL_INTERVAL_S", "")
 
     assert Settings(_env_file=None).poll_interval_s == 60
+
+
+def test_judge_model_defaults_to_gpt_4o_and_reads_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", "postgresql://x")
+    monkeypatch.delenv("JUDGE_MODEL", raising=False)
+    assert Settings(_env_file=None).judge_model == "gpt-4o"
+
+    monkeypatch.setenv("JUDGE_MODEL", "other-judge")
+    assert Settings(_env_file=None).judge_model == "other-judge"

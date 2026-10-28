@@ -9,7 +9,6 @@ dependencies = [
     "uvicorn[standard]",
     "pydantic>=2",
     "pydantic-settings",
-    "sqlalchemy>=2",
     "psycopg[binary]>=3",
     "pgvector",
     "jinja2",
@@ -53,4 +52,5 @@ markers = ["kb: runs against the generated knowledge base in data/kb"]
 # Cyrillic and Kazakh text is the point of these files.
 "tests/**" = ["RUF001", "RUF002", "RUF003"]
 "scripts/**" = ["RUF001", "RUF002", "RUF003"]
+"src/rfp/answering.py" = ["RUF001"]
 "src/rfp/documents/language.py" = ["RUF001"]
