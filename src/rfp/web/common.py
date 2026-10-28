@@ -77,6 +77,10 @@ _RU_MESSAGES: tuple[tuple[re.Pattern[str], str], ...] = tuple(
         ),
         (r"Cannot write the answers into the file: (.*)", "Не удалось записать ответы в файл: {0}"),
         (
+            r"Export check failed: (.*)",
+            "Самопроверка выгрузки не прошла, файл не отдан. Причина: {0}",
+        ),
+        (
             r"File names starting with 'REF-' are reserved for reviewed answers\.",
             "Имена файлов, начинающиеся с «REF-», зарезервированы для проверенных ответов.",
         ),
@@ -104,6 +108,42 @@ def ru(message: str | None) -> str:
     if not message:
         return ""
     for pattern, template in _RU_MESSAGES:
+        match = pattern.fullmatch(message)
+        if match:
+            groups = match.groups()
+            if pattern.pattern.startswith("Export check failed"):
+                groups = ("; ".join(_ru_problem(p) for p in groups[0].split(" | ")),)
+            return template.format(*groups)
+    return message
+
+
+_RU_PROBLEMS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
+    (re.compile(pattern), template)
+    for pattern, template in (
+        (r"sheets differ: expected (.*), got (.*)", "набор листов изменился: было {0}, стало {1}"),
+        (r"sheet '(.*)': size is (\S+), expected (\S+)", "лист «{0}»: размер {1}, ожидался {2}"),
+        (r"sheet '(.*)': the number of formulas changed", "лист «{0}»: изменилось число формул"),
+        (r"sheet '(.*)': merged cells changed", "лист «{0}»: изменились объединённые ячейки"),
+        (r"sheet '(.*)': drop-down lists changed", "лист «{0}»: изменились выпадающие списки"),
+        (r"sheet '(.*)', cell (\S+): content changed", "лист «{0}», ячейка {1}: содержимое изменилось"),
+        (r"sheet '(.*)': (.*) is not at (\S+)", "лист «{0}»: {1} не на своём месте ({2})"),
+        (r"the document has (\d+) blocks, expected (\d+)", "в документе {0} блоков, ожидалось {1}"),
+        (r"block (\d+): text differs from the expected one", "блок {0}: текст отличается от ожидаемого"),
+        (r"table in block (\d+): the number of rows changed", "таблица в блоке {0}: изменилось число строк"),
+        (
+            r"table in block (\d+), row (\d+): cells changed",
+            "таблица в блоке {0}, строка {1}: изменились ячейки",
+        ),
+        (
+            r"table in block (\d+), row (\d+), column (\d+): text or answer differs from the expected one",
+            "таблица в блоке {0}, строка {1}, колонка {2}: текст или ответ отличается от ожидаемого",
+        ),
+    )
+)
+
+
+def _ru_problem(message: str) -> str:
+    for pattern, template in _RU_PROBLEMS:
         match = pattern.fullmatch(message)
         if match:
             return template.format(*match.groups())

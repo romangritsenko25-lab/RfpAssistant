@@ -104,6 +104,9 @@ p { margin: 0; }
 .skip-link:focus { top: var(--space-xs); color: var(--on-primary); }
 
 .muted { color: var(--ink-muted); }
+.layout-box { margin-top: var(--space-xs); color: var(--ink-muted); }
+.layout-box ul { list-style: none; margin: var(--space-xxs) 0 0; padding: 0; }
+.layout-box li + li { margin-top: 2px; }
 .subtle { color: var(--ink-subtle); }
 .caption { font-size: 12px; line-height: 1.33; letter-spacing: 0.32px; }
 .num { font-variant-numeric: tabular-nums; }

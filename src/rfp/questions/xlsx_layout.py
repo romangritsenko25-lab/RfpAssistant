@@ -109,7 +109,7 @@ def detect_xlsx_layout(
             last_filled = max((i for i, v in enumerate(header_cells, 1) if _text(v)), default=0)
             answer_col = get_column_letter(max(last_filled, column_index_from_string(question_col)) + 1)
             if last_filled:
-                answer_header = _answer_title(header_cells, column_index_from_string(question_col))
+                answer_header = answer_title(header_cells, column_index_from_string(question_col))
 
     if answer_col == question_col:
         raise InvalidInputError("The answer column must differ from the question column.")
@@ -157,7 +157,7 @@ def _find_header(rows: list[tuple], only_row: int | None) -> _Header | None:
     return None
 
 
-def _answer_title(header_cells: tuple, question_index: int) -> str:
+def answer_title(header_cells: tuple, question_index: int) -> str:
     """Title for a new answer column, in the language of the question header."""
     name = _normal(header_cells[question_index - 1]) if question_index <= len(header_cells) else ""
     if name in _QUESTION_KK:

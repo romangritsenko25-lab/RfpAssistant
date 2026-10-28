@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -24,9 +25,14 @@ class Settings(BaseSettings):
     retrieval_top_k: int = Field(default=8, ge=1)
     query_translation: bool = True  # search also the question translated to ru/kk/en
     query_model: str | None = None  # model for the translation call; defaults to llm_model
+    layout_mode: Literal["llm", "rules"] = (
+        "llm"  # who finds the question/answer columns: the model or header rules
+    )
+    layout_model: str | None = None  # model for the layout call; defaults to llm_model
     confidence_threshold: float = Field(default=0.5, ge=0.0, le=1.0)
     answer_prompt_path: Path = Path("prompts/answer.md")
     judge_prompt_path: Path = Path("prompts/judge.md")
+    layout_prompt_path: Path = Path("prompts/layout.md")
     # Web access. Without SECRET_KEY a random key is generated per process: sessions do not survive a restart.
     secret_key: SecretStr | None = None
     cookie_secure: bool = False  # set true when the service is served over HTTPS

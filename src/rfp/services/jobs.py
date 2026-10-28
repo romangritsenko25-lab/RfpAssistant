@@ -25,17 +25,19 @@ from psycopg.types.json import Jsonb
 from pydantic import BaseModel, Field
 
 from rfp.answering import GeneratedAnswer, answer_question
-from rfp.audit import log_action, log_model_request
+from rfp.audit import log_action, log_layout_request, log_model_request
 from rfp.config import Settings
 from rfp.embeddings import Embedder
-from rfp.export import AnswerHeader, export_answers
+from rfp.export import AnswerHeader, ExportVerificationError, export_answers
 from rfp.llm import ChatClient
 from rfp.models import Answer, AnswerStatus, Citation, Location, Question, RetrievedChunk
 from rfp.questions import (
-    detect_xlsx_layout,
-    extract_docx_questions,
+    LayoutMap,
+    LayoutResolution,
+    ManualLayout,
     extract_pdf_questions,
-    extract_xlsx_questions,
+    resolve_docx,
+    resolve_xlsx,
 )
 from rfp.retrieval import retrieve
 from rfp.services.errors import ConflictError, InvalidInputError, NotFoundError
@@ -58,8 +60,9 @@ MAX_NOTE_CHARS = 500
 class JobParams(BaseModel):
     """Where the questions are in an XLSX file; ignored for DOCX and PDF.
 
-    Every field is optional: what is missing is detected from the header row. The values stored with
-    a job are the ones actually used.
+    Every field is optional: what is not given is found by the model or from the header row. Columns
+    given here are final. The values stored with a job are the ones actually used: the flat fields
+    describe the first sheet with questions, ``layout`` is the whole map with its source.
     """
 
     sheet: str | None = Field(default=None, description="Sheet name; the first sheet when omitted")
@@ -69,6 +72,9 @@ class JobParams(BaseModel):
     number_col: str | None = Field(default=None, description="Column letter with item numbers; detected")
     answer_header: str | None = Field(
         default=None, description="Title written to the answer column when the file had none"
+    )
+    layout: LayoutMap | None = Field(
+        default=None, description="The layout map used (set by the service, ignored on input)"
     )
 
 
@@ -115,16 +121,29 @@ class ExportFile(BaseModel):
 
 
 def create_job(
-    conn: psycopg.Connection, username: str, filename: str, data: bytes, params: JobParams
+    conn: psycopg.Connection,
+    username: str,
+    filename: str,
+    data: bytes,
+    params: JobParams,
+    *,
+    settings: Settings | None = None,
+    layout_llm: ChatClient | None = None,
 ) -> JobSummary:
-    """Extract the questions of an uploaded file and store the job as ``queued``."""
+    """Extract the questions of an uploaded file and store the job as ``queued``.
+
+    With ``settings.layout_mode == "llm"`` and a ``layout_llm`` the model proposes where the questions
+    and answers are; its calls go to the model request log. Without them header rules decide.
+    """
     name = Path(filename).name
     suffix = Path(name).suffix.lower()
     if suffix not in JOB_SUFFIXES:
         raise InvalidInputError(f"Unsupported file type '{suffix}'; use XLSX, DOCX or PDF.")
     if not data:
         raise InvalidInputError("The file is empty.")
-    questions, params = _extract_questions(name, data, params)
+    llm, prompt = _layout_tools(settings, layout_llm)
+    resolution, params = _extract_questions(name, data, params, llm, prompt)
+    questions = resolution.questions
     if not questions:
         raise InvalidInputError("No questions were found in the file.")
     with conn.transaction():
@@ -140,24 +159,62 @@ def create_job(
                 "INSERT INTO job_items (job_id, qid, ord, question) VALUES (%s, %s, %s, %s)",
                 [(job_id, q.qid, order, Jsonb(q.model_dump())) for order, q in enumerate(questions)],
             )
+        for call in resolution.calls:
+            log_layout_request(
+                conn,
+                job_id=job_id,
+                filename=name,
+                usage=call.usage,
+                reply=call.reply,
+                duration_s=call.duration_s,
+                error=call.error,
+            )
         log_action(
-            conn, username, "job.create", "job", job_id, {"filename": name, "questions": len(questions)}
+            conn,
+            username,
+            "job.create",
+            "job",
+            job_id,
+            {"filename": name, "questions": len(questions), "layout": resolution.layout.source},
         )
     return get_job_summary(conn, job_id)
 
 
-def _extract_questions(name: str, data: bytes, params: JobParams) -> tuple[list[Question], JobParams]:
-    """The questions and the parameters actually used (for XLSX: after detection of the layout)."""
+def _layout_tools(settings: Settings | None, llm: ChatClient | None) -> tuple[ChatClient | None, str | None]:
+    """The client and prompt for the layout call, or (None, None) when header rules must be used."""
+    if settings is None or llm is None or settings.layout_mode != "llm":
+        return None, None
+    default_url = Settings.model_fields["llm_base_url"].default
+    if settings.llm_api_key is None and settings.llm_base_url == default_url:
+        return None, None  # no key for the hosted API: a call could only fail
+    try:
+        return llm, settings.layout_prompt_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        log.warning(
+            "Layout prompt %s cannot be read (%s); using header rules", settings.layout_prompt_path, exc
+        )
+        return None, None
+
+
+def _extract_questions(
+    name: str, data: bytes, params: JobParams, llm: ChatClient | None, prompt: str | None
+) -> tuple[LayoutResolution, JobParams]:
+    """The questions with their layout, and the parameters actually used."""
     suffix = Path(name).suffix.lower()
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / f"input{suffix}"
         path.write_bytes(data)
         try:
             if suffix == ".xlsx":
-                return _extract_xlsx(path, params)
+                manual = ManualLayout(
+                    params.sheet, params.question_col, params.answer_col, params.header_row, params.number_col
+                )
+                resolution = resolve_xlsx(path, manual, llm=llm, prompt=prompt)
+                return resolution, _used_params(resolution.layout)
             if suffix == ".docx":
-                return extract_docx_questions(path), JobParams()
-            return extract_pdf_questions(path), JobParams()
+                resolution = resolve_docx(path, llm=llm, prompt=prompt)
+                return resolution, JobParams(layout=resolution.layout)
+            return LayoutResolution(extract_pdf_questions(path), LayoutMap(source="rules")), JobParams()
         except InvalidInputError:
             raise
         except Exception as exc:
@@ -165,27 +222,19 @@ def _extract_questions(name: str, data: bytes, params: JobParams) -> tuple[list[
             raise InvalidInputError(f"Cannot read questions from '{name}': {exc}") from exc
 
 
-def _extract_xlsx(path: Path, params: JobParams) -> tuple[list[Question], JobParams]:
-    layout = detect_xlsx_layout(
-        path,
-        params.sheet,
-        header_row=params.header_row,
-        question_col=params.question_col,
-        answer_col=params.answer_col,
-        number_col=params.number_col,
+def _used_params(layout: LayoutMap) -> JobParams:
+    first = layout.sheets_with_questions()[0]
+    targets = first.answer_targets
+    assert targets is not None  # a sheet with questions always has targets
+    return JobParams(
+        sheet=first.sheet,
+        question_col=first.question_col,
+        answer_col=targets.text_col,
+        header_row=first.header_row,
+        number_col=first.number_col,
+        answer_header=first.answer_header,
+        layout=layout,
     )
-    questions = extract_xlsx_questions(
-        path, layout.sheet, layout.question_col, layout.answer_col, layout.header_row, layout.number_col
-    )
-    used = JobParams(
-        sheet=layout.sheet,
-        question_col=layout.question_col,
-        answer_col=layout.answer_col,
-        header_row=layout.header_row,
-        number_col=layout.number_col,
-        answer_header=layout.answer_header,
-    )
-    return questions, used
 
 
 # --- reading ------------------------------------------------------------------------------------
@@ -457,7 +506,9 @@ def export_job(conn: psycopg.Connection, job_id: int, username: str) -> ExportFi
         dest = Path(tmp) / f"answers{out_suffix}"
         source.write_bytes(source_file)
         try:
-            export_answers(source, questions, answers, dest, _answer_header(raw_params))
+            export_answers(source, questions, answers, dest, _answer_headers(raw_params))
+        except ExportVerificationError as exc:
+            raise ConflictError(f"Export check failed: {exc}") from exc
         except ValueError as exc:
             raise ConflictError(f"Cannot write the answers into the file: {exc}") from exc
         content = dest.read_bytes()
@@ -469,11 +520,18 @@ def export_job(conn: psycopg.Connection, job_id: int, username: str) -> ExportFi
     )
 
 
-def _answer_header(raw_params: dict | None) -> AnswerHeader | None:
+def _answer_headers(raw_params: dict | None) -> list[AnswerHeader]:
+    """Titles of the answer columns that the export has to add."""
     params = JobParams.model_validate(raw_params or {})
-    if not (params.answer_header and params.sheet and params.answer_col and params.header_row):
-        return None
-    return AnswerHeader(params.sheet, params.header_row, params.answer_col, params.answer_header)
+    if params.layout is not None:
+        return [
+            AnswerHeader(m.sheet, m.header_row, m.answer_targets.text_col, m.answer_header)
+            for m in params.layout.sheets_with_questions()
+            if m.answer_header and m.answer_targets and m.header_row
+        ]
+    if params.answer_header and params.sheet and params.answer_col and params.header_row:
+        return [AnswerHeader(params.sheet, params.header_row, params.answer_col, params.answer_header)]
+    return []
 
 
 def _export_status(status: ItemStatus) -> AnswerStatus:

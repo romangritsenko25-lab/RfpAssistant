@@ -107,7 +107,7 @@ def test_export_writes_the_title_of_an_added_answer_column(tmp_path):
         location=Location(sheet="Sheet1", row=2, answer_col="C", question_col="B"),
     )
     out = tmp_path / "out.xlsx"
-    export_answers(path, [question], one_answer(), out, AnswerHeader("Sheet1", 1, "C", "Answer"))
+    export_answers(path, [question], one_answer(), out, [AnswerHeader("Sheet1", 1, "C", "Answer")])
     sheet = load_workbook(out)["Sheet1"]
     assert sheet["C1"].value == "Answer"
     assert sheet["C1"].font.bold

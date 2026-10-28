@@ -8,6 +8,7 @@ from psycopg.types.json import Jsonb
 from pydantic import BaseModel, Field
 
 from rfp.answering import GeneratedAnswer
+from rfp.llm import LLMUsage
 from rfp.models import RetrievedChunk
 
 
@@ -89,6 +90,39 @@ def log_model_request(
             Jsonb(fragments),
             generated.answer.text if generated else None,
             generated.answer.status if generated else None,
+            usage.model if usage else None,
+            usage.prompt_tokens if usage else None,
+            usage.completion_tokens if usage else None,
+            usage.cost_usd if usage else None,
+            usage.latency_s if usage else None,
+            duration_s,
+            error,
+        ),
+    )
+
+
+def log_layout_request(
+    conn: psycopg.Connection,
+    *,
+    job_id: int | None,
+    filename: str,
+    usage: LLMUsage | None,
+    reply: str,
+    duration_s: float,
+    error: str | None = None,
+) -> None:
+    """Record one model call that looked for the layout of a file (``usage`` is None if it failed)."""
+    conn.execute(
+        """
+        INSERT INTO llm_log (job_id, qid, question, answer_text, status, model, prompt_tokens,
+                             completion_tokens, cost_usd, latency_s, duration_s, error)
+        VALUES (%s, 'layout', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (
+            job_id,
+            f"Layout of {filename}",
+            reply or None,
+            "layout" if usage else None,
             usage.model if usage else None,
             usage.prompt_tokens if usage else None,
             usage.completion_tokens if usage else None,

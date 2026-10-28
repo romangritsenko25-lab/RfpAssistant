@@ -327,7 +327,7 @@ def test_upload_without_columns_detects_layout_and_export_keeps_the_questions(we
     wait_done(web, job)
 
     page = web.get(f"/jobs/{job}").text
-    assert "Лист: Questionnaire, вопросы: колонка C, ответы: колонка D" in page
+    assert "Лист «Questionnaire»: вопросы — колонка C, ответ — колонка D" in page
 
     export = web.get(f"/jobs/{job}/export")
     assert export.status_code == 200

@@ -128,6 +128,7 @@ def api_settings(test_database_url: str, tmp_path: Path) -> Settings:
         admin_password=ADMIN_PASSWORD,
         watch_kb=False,
         confidence_threshold=0.5,
+        layout_mode="rules",
         _env_file=None,
     )
 
@@ -153,11 +154,12 @@ def logged_in(client):
 
 @pytest.fixture(autouse=True)
 def no_query_translation(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    """Tests never call the translation model; tests of translation pass a fake translator explicitly."""
+    """Tests never call the translation or layout model; tests of those pass a fake client explicitly."""
     from rfp.config import get_settings
     from rfp.query import default_translator
 
     monkeypatch.setenv("QUERY_TRANSLATION", "false")
+    monkeypatch.setenv("LAYOUT_MODE", "rules")
     get_settings.cache_clear()
     default_translator.cache_clear()
     yield

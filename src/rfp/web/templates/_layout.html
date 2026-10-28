@@ -1,0 +1,23 @@
+{# Where the questions are and where the answers go. Expects: job #}
+{% set layout = job.params.layout %}
+{% if layout %}
+<div class="layout-box caption" id="job-layout">
+  <p>Разметка файла: {{ {'llm': 'определена моделью', 'rules': 'по заголовкам таблицы', 'manual': 'указана вручную'}[layout.source] }}</p>
+  {% if layout.note %}<p>Разметка модели отклонена, использованы правила по заголовкам: {{ layout.note }}</p>{% endif %}
+  {% if layout.sheets %}
+  <ul>
+    {% for s in layout.sheets %}
+    {% if s.has_questions %}
+    <li>Лист «{{ s.sheet }}»: вопросы — колонка {{ s.question_col }}, ответ — колонка {{ s.answer_targets.text_col }}{% if s.answer_header %} (новая колонка «{{ s.answer_header }}»){% endif %}{% if s.answer_targets.short_answer_col %}, короткий ответ — колонка {{ s.answer_targets.short_answer_col }}{% endif %}{% if s.answer_targets.source_col %}, источник — колонка {{ s.answer_targets.source_col }}{% endif %}{% if s.skipped_rows %}; пропущено строк-заголовков: {{ s.skipped_rows }}{% endif %}</li>
+    {% else %}
+    <li>Лист «{{ s.sheet }}»: вопросов нет</li>
+    {% endif %}
+    {% endfor %}
+  </ul>
+  {% elif job.filename.lower().endswith('.docx') %}
+  <p>Ответы: в ячейках таблиц — {{ layout.docx_cell_answers }}, новыми абзацами под вопросом — {{ layout.docx_paragraph_answers }}</p>
+  {% endif %}
+</div>
+{% elif job.params.question_col and job.filename.lower().endswith('.xlsx') %}
+<p class="muted caption" id="job-layout">Лист: {{ job.params.sheet }}, вопросы: колонка {{ job.params.question_col }}, ответы: колонка {{ job.params.answer_col }}{% if job.params.answer_header %} (новая колонка «{{ job.params.answer_header }}»){% endif %}</p>
+{% endif %}

@@ -7,7 +7,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, File, Form, Query, Request, UploadFile
 from fastapi.responses import Response
 
-from rfp.api.deps import Conn, EmbedderDep, RunnerDep, SettingsDep
+from rfp.api.deps import Conn, EmbedderDep, LayoutLLMDep, RunnerDep, SettingsDep
 from rfp.services import jobs as jobs_service
 from rfp.services.errors import ConflictError, InvalidInputError, NotFoundError, ServiceError
 from rfp.services.jobs import JobItem
@@ -119,6 +119,7 @@ def upload_job(
     conn: Conn,
     runner: RunnerDep,
     settings: SettingsDep,
+    layout_llm: LayoutLLMDep,
     user: WebUser,
     file: Annotated[UploadFile, File()],
     sheet: Annotated[str | None, Form()] = None,
@@ -139,7 +140,15 @@ def upload_job(
             header_row=_header_row(header_row),
             number_col=(number_col or "").strip() or None,
         )
-        job = jobs_service.create_job(conn, user.username, file.filename or "upload", data, params)
+        job = jobs_service.create_job(
+            conn,
+            user.username,
+            file.filename or "upload",
+            data,
+            params,
+            settings=settings,
+            layout_llm=layout_llm,
+        )
     except ServiceError as exc:
         return render(
             request,

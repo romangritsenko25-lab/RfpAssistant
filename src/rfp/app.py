@@ -72,6 +72,9 @@ def create_app(
             app.state.conn = conn
             app.state.embedder = embedder or get_embedder(cfg)
             app.state.llm = llm or OpenAIChatClient(cfg)
+            app.state.layout_llm = llm or (
+                OpenAIChatClient(cfg, model=cfg.layout_model) if cfg.layout_model else app.state.llm
+            )
             bootstrap_admin(conn, cfg)
 
             def connect():

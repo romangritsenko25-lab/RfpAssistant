@@ -6,7 +6,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, File, Form, Query, UploadFile, status
 from fastapi.responses import Response
 
-from rfp.api.deps import Conn, EmbedderDep, RunnerDep, SettingsDep
+from rfp.api.deps import Conn, EmbedderDep, LayoutLLMDep, RunnerDep, SettingsDep
 from rfp.api.schemas import Page, ReferenceResponse, ReviewRequest
 from rfp.auth import CurrentUser
 from rfp.services import jobs as jobs_service
@@ -31,6 +31,7 @@ def create_job(
     conn: Conn,
     runner: RunnerDep,
     settings: SettingsDep,
+    layout_llm: LayoutLLMDep,
     user: CurrentUser,
     file: Annotated[UploadFile, File(description="XLSX, DOCX or PDF questionnaire")],
     sheet: Annotated[str | None, Form(description="XLSX sheet name; the first sheet if omitted")] = None,
@@ -57,7 +58,9 @@ def create_job(
         header_row=header_row,
         number_col=number_col,
     )
-    job = jobs_service.create_job(conn, user.username, file.filename or "upload", data, params)
+    job = jobs_service.create_job(
+        conn, user.username, file.filename or "upload", data, params, settings=settings, layout_llm=layout_llm
+    )
     runner.submit(job.id)
     return job
 

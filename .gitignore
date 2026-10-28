@@ -12,3 +12,5 @@ reports/raw/
 *.db
 .DS_Store
 .claude/settings.local.json
+# Public questionnaires: licenses forbid or do not clearly allow redistribution (see docs/public-questionnaires.md)
+data/public/

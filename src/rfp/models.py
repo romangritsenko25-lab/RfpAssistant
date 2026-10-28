@@ -50,7 +50,8 @@ class Location(BaseModel):
 
     XLSX: ``sheet``, ``row`` (1-based), ``answer_col`` and ``question_col`` (letters).
     DOCX: ``block`` (index of the paragraph or table among body blocks); for a table cell also
-    ``table_row`` and ``table_col`` (0-based).
+    ``table_row`` and ``table_col`` (0-based). ``answer_table_row``/``answer_table_col`` name the cell of
+    the same table that receives the answer; without them the answer is a new paragraph under the question.
     PDF: ``page`` and ``line`` (both 1-based).
     """
 
@@ -61,6 +62,8 @@ class Location(BaseModel):
     block: int | None = None
     table_row: int | None = None
     table_col: int | None = None
+    answer_table_row: int | None = None
+    answer_table_col: int | None = None
     page: int | None = None
     line: int | None = None
 

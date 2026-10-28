@@ -134,7 +134,7 @@ def test_pdf_input_produces_docx_report(tmp_path: Path) -> None:
     question = Question(
         qid="q1", text="Describe your backup policy.", number="1", location={"page": 1, "line": 1}
     )
-    answers = {"q1": Answer(qid="q1", text="Nightly.", status="no_data", confidence=0.0)}
+    answers = {"q1": Answer(qid="q1", text="Nightly.", status="answered", confidence=0.9)}
     dest = tmp_path / "report.docx"
 
     export_answers(pdf, [question], answers, dest)

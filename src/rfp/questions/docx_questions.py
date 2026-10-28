@@ -48,7 +48,7 @@ def _paragraph_candidates(
 
 def _table_candidates(table: Table, block: int) -> Iterator[Candidate]:
     for row_index, row in enumerate(table.rows):
-        cells = _unique_cells(row)
+        cells = unique_cells(row)
         label = cells[0][1].text.strip() if cells else ""
         for col_index, cell in cells:
             text = cell.text.strip()
@@ -63,7 +63,7 @@ def _table_candidates(table: Table, block: int) -> Iterator[Candidate]:
                 break
 
 
-def _unique_cells(row) -> list[tuple[int, object]]:
+def unique_cells(row) -> list[tuple[int, object]]:
     """Cells of a row with merged cells reported once, keeping their column index."""
     seen: set[int] = set()
     cells = []

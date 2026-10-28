@@ -25,6 +25,10 @@ def get_llm(request: Request) -> ChatClient:
     return request.app.state.llm
 
 
+def get_layout_llm(request: Request) -> ChatClient:
+    return request.app.state.layout_llm
+
+
 def get_runner(request: Request) -> JobRunner:
     return request.app.state.runner
 
@@ -41,4 +45,5 @@ def get_conn(request: Request) -> Iterator[psycopg.Connection]:
 Conn = Annotated[psycopg.Connection, Depends(get_conn)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 EmbedderDep = Annotated[Embedder, Depends(get_embedder)]
+LayoutLLMDep = Annotated[ChatClient, Depends(get_layout_llm)]
 RunnerDep = Annotated[JobRunner, Depends(get_runner)]
