@@ -23,7 +23,8 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
     description=(
         "Accepts an XLSX, DOCX or PDF file. The questions are extracted at once (an unreadable file "
         "or one without questions is rejected with 422); answering runs in the background. Poll "
-        "`GET /api/jobs/{job_id}/status` for progress. The XLSX parameters say where the questions are."
+        "`GET /api/jobs/{job_id}/status` for progress. For XLSX the question and answer columns are "
+        "detected from the header row unless given."
     ),
 )
 def create_job(
@@ -33,9 +34,16 @@ def create_job(
     user: CurrentUser,
     file: Annotated[UploadFile, File(description="XLSX, DOCX or PDF questionnaire")],
     sheet: Annotated[str | None, Form(description="XLSX sheet name; the first sheet if omitted")] = None,
-    question_col: Annotated[str, Form(description="XLSX column with the questions")] = "B",
-    answer_col: Annotated[str, Form(description="XLSX column the answers are written to")] = "C",
-    header_row: Annotated[int, Form(ge=0, description="XLSX header row; questions start below it")] = 1,
+    question_col: Annotated[
+        str | None, Form(description="XLSX column with the questions; detected from the headers if omitted")
+    ] = None,
+    answer_col: Annotated[
+        str | None,
+        Form(description="XLSX column the answers go to; detected if omitted; must differ from question_col"),
+    ] = None,
+    header_row: Annotated[
+        int | None, Form(ge=0, description="XLSX header row; detected if omitted (questions start below it)")
+    ] = None,
     number_col: Annotated[str | None, Form(description="XLSX column with item numbers (optional)")] = None,
 ) -> jobs_service.JobSummary:
     limit = settings.max_upload_mb * 1024 * 1024
@@ -47,7 +55,7 @@ def create_job(
         question_col=question_col,
         answer_col=answer_col,
         header_row=header_row,
-        number_col=number_col or None,
+        number_col=number_col,
     )
     job = jobs_service.create_job(conn, user.username, file.filename or "upload", data, params)
     runner.submit(job.id)

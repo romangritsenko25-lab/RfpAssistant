@@ -4,11 +4,14 @@ import hashlib
 import json
 from pathlib import Path
 
-from openpyxl import load_workbook
-
 from rfp.eval.metrics import GoldItem
 from rfp.models import Question
-from rfp.questions import extract_docx_questions, extract_pdf_questions, extract_xlsx_questions
+from rfp.questions import (
+    detect_xlsx_layout,
+    extract_docx_questions,
+    extract_pdf_questions,
+    extract_xlsx_questions,
+)
 
 SETS_DIR = Path("data/sets")
 
@@ -34,27 +37,12 @@ def extract_set_questions(folder: Path, files: set[str]) -> dict[str, list[Quest
 def _extract(path: Path) -> list[Question]:
     suffix = path.suffix.lower()
     if suffix == ".xlsx":
-        sheet, question_col, answer_col = _locate_columns(path)
-        return extract_xlsx_questions(path, sheet, question_col, answer_col)
+        layout = detect_xlsx_layout(path)
+        return extract_xlsx_questions(
+            path, layout.sheet, layout.question_col, layout.answer_col, layout.header_row
+        )
     if suffix == ".docx":
         return extract_docx_questions(path)
     if suffix == ".pdf":
         return extract_pdf_questions(path)
     raise ValueError(f"unsupported question file: {path.name}")
-
-
-def _locate_columns(path: Path) -> tuple[str, str, str]:
-    """Find the first sheet and the letters of the ``Question`` and ``Answer`` header cells."""
-    workbook = load_workbook(path, read_only=True, data_only=True)
-    try:
-        sheet = workbook.worksheets[0]
-        headers = {
-            str(cell.value).strip().lower(): cell.column_letter
-            for cell in next(sheet.iter_rows(min_row=1, max_row=1))
-            if cell.value
-        }
-        return sheet.title, headers["question"], headers["answer"]
-    except KeyError as error:
-        raise ValueError(f"{path.name}: header row needs 'Question' and 'Answer' columns") from error
-    finally:
-        workbook.close()

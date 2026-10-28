@@ -11,7 +11,6 @@ reviewer may change; export always writes the current values.
 """
 
 import logging
-import re
 import tempfile
 import time
 from collections.abc import Callable
@@ -21,7 +20,6 @@ from pathlib import Path
 from typing import Literal
 
 import psycopg
-from openpyxl import load_workbook
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel, Field
@@ -30,10 +28,15 @@ from rfp.answering import GeneratedAnswer, answer_question
 from rfp.audit import log_action, log_model_request
 from rfp.config import Settings
 from rfp.embeddings import Embedder
-from rfp.export import export_answers
+from rfp.export import AnswerHeader, export_answers
 from rfp.llm import ChatClient
 from rfp.models import Answer, AnswerStatus, Citation, Location, Question, RetrievedChunk
-from rfp.questions import extract_docx_questions, extract_pdf_questions, extract_xlsx_questions
+from rfp.questions import (
+    detect_xlsx_layout,
+    extract_docx_questions,
+    extract_pdf_questions,
+    extract_xlsx_questions,
+)
 from rfp.retrieval import retrieve
 from rfp.services.errors import ConflictError, InvalidInputError, NotFoundError
 
@@ -50,17 +53,23 @@ MEDIA_TYPES = {
 }
 FAILED_ANSWER_TEXT = "Automatic answering failed; this question needs a manual answer."
 MAX_NOTE_CHARS = 500
-_COLUMN_RE = re.compile(r"^[A-Za-z]{1,3}$")
 
 
 class JobParams(BaseModel):
-    """Where the questions are in an XLSX file; ignored for DOCX and PDF."""
+    """Where the questions are in an XLSX file; ignored for DOCX and PDF.
+
+    Every field is optional: what is missing is detected from the header row. The values stored with
+    a job are the ones actually used.
+    """
 
     sheet: str | None = Field(default=None, description="Sheet name; the first sheet when omitted")
-    question_col: str = Field(default="B", description="Column letter holding the questions")
-    answer_col: str = Field(default="C", description="Column letter the answers are written to")
-    header_row: int = Field(default=1, ge=0, description="Questions are read from the rows below this one")
-    number_col: str | None = Field(default=None, description="Optional column letter with item numbers")
+    question_col: str | None = Field(default=None, description="Column letter with the questions; detected")
+    answer_col: str | None = Field(default=None, description="Column letter for the answers; detected")
+    header_row: int | None = Field(default=None, ge=0, description="Header row; questions are below it")
+    number_col: str | None = Field(default=None, description="Column letter with item numbers; detected")
+    answer_header: str | None = Field(
+        default=None, description="Title written to the answer column when the file had none"
+    )
 
 
 class JobSummary(BaseModel):
@@ -92,6 +101,7 @@ class JobItem(BaseModel):
 
 
 class JobDetail(JobSummary):
+    params: JobParams
     items: list[JobItem]
 
 
@@ -114,7 +124,7 @@ def create_job(
         raise InvalidInputError(f"Unsupported file type '{suffix}'; use XLSX, DOCX or PDF.")
     if not data:
         raise InvalidInputError("The file is empty.")
-    questions = _extract_questions(name, data, params)
+    questions, params = _extract_questions(name, data, params)
     if not questions:
         raise InvalidInputError("No questions were found in the file.")
     with conn.transaction():
@@ -136,7 +146,8 @@ def create_job(
     return get_job_summary(conn, job_id)
 
 
-def _extract_questions(name: str, data: bytes, params: JobParams) -> list[Question]:
+def _extract_questions(name: str, data: bytes, params: JobParams) -> tuple[list[Question], JobParams]:
+    """The questions and the parameters actually used (for XLSX: after detection of the layout)."""
     suffix = Path(name).suffix.lower()
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / f"input{suffix}"
@@ -145,8 +156,8 @@ def _extract_questions(name: str, data: bytes, params: JobParams) -> list[Questi
             if suffix == ".xlsx":
                 return _extract_xlsx(path, params)
             if suffix == ".docx":
-                return extract_docx_questions(path)
-            return extract_pdf_questions(path)
+                return extract_docx_questions(path), JobParams()
+            return extract_pdf_questions(path), JobParams()
         except InvalidInputError:
             raise
         except Exception as exc:
@@ -154,24 +165,27 @@ def _extract_questions(name: str, data: bytes, params: JobParams) -> list[Questi
             raise InvalidInputError(f"Cannot read questions from '{name}': {exc}") from exc
 
 
-def _extract_xlsx(path: Path, params: JobParams) -> list[Question]:
-    for column in (params.question_col, params.answer_col, params.number_col or "A"):
-        if not _COLUMN_RE.match(column):
-            raise InvalidInputError(f"'{column}' is not a column letter.")
-    sheet = params.sheet
-    workbook = load_workbook(path, read_only=True)
-    try:
-        if sheet is None:
-            sheet = workbook.sheetnames[0]
-        elif sheet not in workbook.sheetnames:
-            raise InvalidInputError(
-                f"Sheet '{sheet}' not found; available: {', '.join(workbook.sheetnames)}."
-            )
-    finally:
-        workbook.close()
-    return extract_xlsx_questions(
-        path, sheet, params.question_col, params.answer_col, params.header_row, params.number_col
+def _extract_xlsx(path: Path, params: JobParams) -> tuple[list[Question], JobParams]:
+    layout = detect_xlsx_layout(
+        path,
+        params.sheet,
+        header_row=params.header_row,
+        question_col=params.question_col,
+        answer_col=params.answer_col,
+        number_col=params.number_col,
     )
+    questions = extract_xlsx_questions(
+        path, layout.sheet, layout.question_col, layout.answer_col, layout.header_row, layout.number_col
+    )
+    used = JobParams(
+        sheet=layout.sheet,
+        question_col=layout.question_col,
+        answer_col=layout.answer_col,
+        header_row=layout.header_row,
+        number_col=layout.number_col,
+        answer_header=layout.answer_header,
+    )
+    return questions, used
 
 
 # --- reading ------------------------------------------------------------------------------------
@@ -204,7 +218,9 @@ def list_jobs(conn: psycopg.Connection, limit: int, offset: int) -> tuple[list[J
 
 def get_job(conn: psycopg.Connection, job_id: int) -> JobDetail:
     summary = get_job_summary(conn, job_id)
-    return JobDetail(**summary.model_dump(), items=_load_items(conn, job_id))
+    stored = conn.execute("SELECT params FROM jobs WHERE id = %s", (job_id,)).fetchone()
+    params = JobParams.model_validate(stored[0] or {})
+    return JobDetail(**summary.model_dump(), params=params, items=_load_items(conn, job_id))
 
 
 def _load_items(conn: psycopg.Connection, job_id: int, qid: str | None = None) -> list[JobItem]:
@@ -414,10 +430,12 @@ def review_item(
 
 def export_job(conn: psycopg.Connection, job_id: int, username: str) -> ExportFile:
     """The source file with the current answers written into it (a PDF input gives a DOCX report)."""
-    row = conn.execute("SELECT filename, source_file, status FROM jobs WHERE id = %s", (job_id,)).fetchone()
+    row = conn.execute(
+        "SELECT filename, source_file, status, params FROM jobs WHERE id = %s", (job_id,)
+    ).fetchone()
     if row is None:
         raise NotFoundError(f"Job {job_id} not found.")
-    filename, source_file, job_status = row
+    filename, source_file, job_status, raw_params = row
     if job_status in ("queued", "running"):
         raise ConflictError("The job is still being processed.")
     items = [item for item in _load_items(conn, job_id) if item.status != "pending"]
@@ -438,7 +456,10 @@ def export_job(conn: psycopg.Connection, job_id: int, username: str) -> ExportFi
         source = Path(tmp) / f"source{suffix}"
         dest = Path(tmp) / f"answers{out_suffix}"
         source.write_bytes(source_file)
-        export_answers(source, questions, answers, dest)
+        try:
+            export_answers(source, questions, answers, dest, _answer_header(raw_params))
+        except ValueError as exc:
+            raise ConflictError(f"Cannot write the answers into the file: {exc}") from exc
         content = dest.read_bytes()
     log_action(conn, username, "job.export", "job", job_id, {"filename": filename})
     return ExportFile(
@@ -446,6 +467,13 @@ def export_job(conn: psycopg.Connection, job_id: int, username: str) -> ExportFi
         content=content,
         media_type=MEDIA_TYPES[out_suffix],
     )
+
+
+def _answer_header(raw_params: dict | None) -> AnswerHeader | None:
+    params = JobParams.model_validate(raw_params or {})
+    if not (params.answer_header and params.sheet and params.answer_col and params.header_row):
+        return None
+    return AnswerHeader(params.sheet, params.header_row, params.answer_col, params.answer_header)
 
 
 def _export_status(status: ItemStatus) -> AnswerStatus:

@@ -21,18 +21,18 @@
       </div>
       <details>
         <summary>Параметры для XLSX</summary>
-        <p class="hint">Где в таблице вопросы и куда писать ответы. Для DOCX и PDF не нужны.</p>
+        <p class="hint">Где в таблице вопросы и куда писать ответы. Оставьте пустым — колонки определятся по заголовкам. Для DOCX и PDF не нужны.</p>
         <div class="form-grid" style="margin-top:12px">
           <div class="field"><label for="sheet">Лист</label>
             <input class="input" id="sheet" name="sheet" type="text" placeholder="первый лист"></div>
           <div class="field"><label for="question_col">Колонка с вопросами</label>
-            <input class="input" id="question_col" name="question_col" type="text" value="B" maxlength="3"></div>
+            <input class="input" id="question_col" name="question_col" type="text" maxlength="3" placeholder="авто"></div>
           <div class="field"><label for="answer_col">Колонка для ответов</label>
-            <input class="input" id="answer_col" name="answer_col" type="text" value="C" maxlength="3"></div>
+            <input class="input" id="answer_col" name="answer_col" type="text" maxlength="3" placeholder="авто"></div>
           <div class="field"><label for="header_row">Строка заголовка</label>
-            <input class="input" id="header_row" name="header_row" type="number" min="0" value="1"></div>
+            <input class="input" id="header_row" name="header_row" type="number" min="0" placeholder="авто"></div>
           <div class="field"><label for="number_col">Колонка с номерами</label>
-            <input class="input" id="number_col" name="number_col" type="text" maxlength="3" placeholder="необязательно"></div>
+            <input class="input" id="number_col" name="number_col" type="text" maxlength="3" placeholder="авто"></div>
         </div>
       </details>
       <div class="btn-row" style="margin-top:16px">

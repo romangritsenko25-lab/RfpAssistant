@@ -104,6 +104,15 @@ def jobs_table(
     return render(request, "_jobs_table.html", user, **_list_context(conn, page))
 
 
+def _header_row(value: str | None) -> int | None:
+    value = (value or "").strip()
+    if not value:
+        return None
+    if not value.isdigit():
+        raise InvalidInputError("The header row must be a non-negative number.")
+    return int(value)
+
+
 @router.post("/jobs")
 def upload_job(
     request: Request,
@@ -113,9 +122,9 @@ def upload_job(
     user: WebUser,
     file: Annotated[UploadFile, File()],
     sheet: Annotated[str | None, Form()] = None,
-    question_col: Annotated[str, Form()] = "B",
-    answer_col: Annotated[str, Form()] = "C",
-    header_row: Annotated[int, Form(ge=0)] = 1,
+    question_col: Annotated[str | None, Form()] = None,
+    answer_col: Annotated[str | None, Form()] = None,
+    header_row: Annotated[str | None, Form()] = None,
     number_col: Annotated[str | None, Form()] = None,
 ) -> Response:
     try:
@@ -125,9 +134,9 @@ def upload_job(
             raise InvalidInputError(f"The file is larger than {settings.max_upload_mb} MB.")
         params = jobs_service.JobParams(
             sheet=(sheet or "").strip() or None,
-            question_col=question_col.strip() or "B",
-            answer_col=answer_col.strip() or "C",
-            header_row=header_row,
+            question_col=(question_col or "").strip() or None,
+            answer_col=(answer_col or "").strip() or None,
+            header_row=_header_row(header_row),
             number_col=(number_col or "").strip() or None,
         )
         job = jobs_service.create_job(conn, user.username, file.filename or "upload", data, params)

@@ -6,6 +6,9 @@
     <p class="crumbs caption"><a href="/jobs">Опросники</a> / №{{ job.id }}</p>
     <h1>{{ job.filename }}</h1>
     <p class="muted caption">Загружен {{ job.created_at|dt }}, {{ job.created_by }}</p>
+    {% if job.params.question_col and job.filename.lower().endswith('.xlsx') %}
+    <p class="muted caption" id="job-layout">Лист: {{ job.params.sheet }}, вопросы: колонка {{ job.params.question_col }}, ответы: колонка {{ job.params.answer_col }}{% if job.params.answer_header %} (новая колонка «{{ job.params.answer_header }}»){% endif %}</p>
+    {% endif %}
   </div>
   <div class="btn-row">
     {% if job.status in ('done', 'failed') and job.done %}

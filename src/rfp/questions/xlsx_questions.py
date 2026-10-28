@@ -34,7 +34,12 @@ def extract_xlsx_questions(
                     qid=f"q{len(questions) + 1}",
                     text=text,
                     number=number or None,
-                    location=Location(sheet=sheet, row=row[0].row, answer_col=answer_col.upper()),
+                    location=Location(
+                        sheet=sheet,
+                        row=row[0].row,
+                        answer_col=answer_col.upper(),
+                        question_col=question_col.upper(),
+                    ),
                 )
             )
         return questions

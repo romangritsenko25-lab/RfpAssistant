@@ -59,6 +59,24 @@ _RU_MESSAGES: tuple[tuple[re.Pattern[str], str], ...] = tuple(
         (r"'(.*)' is not a column letter\.", "«{0}» — не буква колонки."),
         (r"Sheet '(.*)' not found; available: (.*)\.", "Лист «{0}» не найден; есть: {1}."),
         (
+            r"Cannot find the question column: .*Specify the columns manually\.",
+            "Не удалось найти колонку с вопросами: в первых 10 строках нет заголовка вроде "
+            "«Вопрос», «Question» или «Сұрақ». Укажите колонки вручную.",
+        ),
+        (
+            r"The answer column must differ from the question column\.",
+            "Колонка ответов должна отличаться от колонки вопросов.",
+        ),
+        (
+            r"The number column must differ from the answer column\.",
+            "Колонка номеров должна отличаться от колонки ответов.",
+        ),
+        (
+            r"The header row must be a non-negative number\.",
+            "Строка заголовка должна быть неотрицательным числом.",
+        ),
+        (r"Cannot write the answers into the file: (.*)", "Не удалось записать ответы в файл: {0}"),
+        (
             r"File names starting with 'REF-' are reserved for reviewed answers\.",
             "Имена файлов, начинающиеся с «REF-», зарезервированы для проверенных ответов.",
         ),

@@ -48,7 +48,7 @@ class RetrievedChunk(BaseModel):
 class Location(BaseModel):
     """Where a question lives in the source file; which fields are set depends on the format.
 
-    XLSX: ``sheet``, ``row`` (1-based) and ``answer_col`` (letter).
+    XLSX: ``sheet``, ``row`` (1-based), ``answer_col`` and ``question_col`` (letters).
     DOCX: ``block`` (index of the paragraph or table among body blocks); for a table cell also
     ``table_row`` and ``table_col`` (0-based).
     PDF: ``page`` and ``line`` (both 1-based).
@@ -57,6 +57,7 @@ class Location(BaseModel):
     sheet: str | None = None
     row: int | None = None
     answer_col: str | None = None
+    question_col: str | None = None
     block: int | None = None
     table_row: int | None = None
     table_col: int | None = None

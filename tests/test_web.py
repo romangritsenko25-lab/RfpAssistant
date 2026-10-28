@@ -1,6 +1,8 @@
 import time
 
 import pytest
+from openpyxl import Workbook, load_workbook
+from openpyxl.styles import Font, PatternFill
 
 from rfp.auth import create_user
 from tests.conftest import ADMIN_PASSWORD, ADMIN_USER, KB_TEXT
@@ -285,3 +287,75 @@ def test_service_messages_are_shown_in_russian(web):
 def test_brand_is_one_word(web):
     header = web.get("/jobs").text.split("</header>")[0]
     assert "Rfp<span>Assistant</span>" in header and "Rfp Assistant" not in header
+
+
+# --- automatic column detection ---------------------------------------------------------------------
+
+LAYOUT_QUESTIONS = [
+    "Do you enforce multi-factor authentication?",
+    "Как часто пересматриваются права доступа?",
+    "Деректерді сақтау мерзімі қандай?",
+]
+
+
+def build_id_domain_question_answer(path):
+    """ID / Domain / Question / Answer: the layout that the old B/C defaults destroyed."""
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Questionnaire"
+    sheet.append(["ID", "Domain", "Question", "Answer"])
+    for number, question in enumerate(LAYOUT_QUESTIONS, 1):
+        sheet.append([f"Q-{number:03d}", "Security", question, None])
+    sheet["A1"].font = Font(bold=True)
+    sheet["C2"].fill = PatternFill("solid", fgColor="FFF2CC")
+    sheet.column_dimensions["C"].width = 60
+    workbook.save(path)
+    return path
+
+
+def post_job(client, path, **data):
+    with path.open("rb") as handle:
+        return client.post("/jobs", files={"file": (path.name, handle)}, data=data, follow_redirects=False)
+
+
+def test_upload_without_columns_detects_layout_and_export_keeps_the_questions(web, tmp_path):
+    upload_kb(web)
+    path = build_id_domain_question_answer(tmp_path / "layout.xlsx")
+    response = post_job(web, path)
+    assert response.status_code == 303, response.text
+    job = int(response.headers["location"].rsplit("/", 1)[1])
+    wait_done(web, job)
+
+    page = web.get(f"/jobs/{job}").text
+    assert "Лист: Questionnaire, вопросы: колонка C, ответы: колонка D" in page
+
+    export = web.get(f"/jobs/{job}/export")
+    assert export.status_code == 200
+    out = tmp_path / "out.xlsx"
+    out.write_bytes(export.content)
+    original, result = load_workbook(path)["Questionnaire"], load_workbook(out)["Questionnaire"]
+    assert [result[f"C{row}"].value for row in (2, 3, 4)] == LAYOUT_QUESTIONS
+    assert all(result[f"D{row}"].value for row in (2, 3, 4))
+    for row in range(1, 5):
+        for col in "ABC":
+            assert result[f"{col}{row}"].value == original[f"{col}{row}"].value
+    assert result["A1"].font.bold
+    assert result["C2"].fill.fgColor.rgb == original["C2"].fill.fgColor.rgb
+    assert result.column_dimensions["C"].width == 60
+
+
+def test_upload_with_equal_question_and_answer_columns_is_rejected(web, questionnaire_xlsx):
+    response = post_job(web, questionnaire_xlsx, question_col="B", answer_col="b")
+    assert response.status_code == 422
+    assert "Колонка ответов должна отличаться" in response.text
+
+
+def test_upload_without_recognisable_headers_asks_for_manual_columns(web, tmp_path):
+    path = tmp_path / "plain.xlsx"
+    workbook = Workbook()
+    workbook.active.append(["Foo", "Bar"])
+    workbook.active.append(["a", "b"])
+    workbook.save(path)
+    response = post_job(web, path)
+    assert response.status_code == 422
+    assert "Укажите колонки вручную" in response.text
