@@ -30,7 +30,16 @@ judge the pattern from the rows you have.
    for a comment, explanation or free text, that is `text_col`; a column for a document,
    reference, page or source is `source_col`. When there is only one response column, it is
    `text_col` and the other targets are null.
-8. Do not guess. When no safe place for answers exists, set `has_questions` to false for XLSX or
+8. A sheet whose rows copy the questions of another sheet (a change log, a cross-reference, an
+   evaluation or analysis view) is not a place for answers: report it with `has_questions` false.
+   A sheet's cells may be formulas; the values shown are their stored results, so a question shown
+   as text is a question.
+9. Only when the answer is a mark (a cross, a tick) in one of several adjacent columns, each titled with
+   one possible answer, report them as `choice_cols`, mapping each title to its column letter, and
+   leave `short_answer_col` null. Take the titles from the header cells above the questions. A single
+   column with a drop-down list is never `choice_cols`; it is `short_answer_col`. A column titled
+   with one possible answer is a mark column, not a place for free text.
+10. Do not guess. When no safe place for answers exists, set `has_questions` to false for XLSX or
    leave the question out for DOCX.
 
 ## Output for FORMAT: XLSX
@@ -49,7 +58,8 @@ judge the pattern from the rows you have.
     "short_answer_col": null,
     "allowed_values": null,
     "text_col": "C",
-    "source_col": null
+    "source_col": null,
+    "choice_cols": null
   }
 }]}
 ```
@@ -58,7 +68,8 @@ Include every sheet shown. Columns are letters, rows are numbers from the addres
 `header_row` is the row with the column titles, 0 if there is none. `number_col` is the column
 with item numbers or IDs, or null. `last_question_row` is the last row that holds a question
 (use the last row shown if the tail is visible, otherwise the end of the sheet). For a sheet
-without questions only `sheet` and `has_questions` are needed.
+without questions only `sheet` and `has_questions` are needed. `text_col` is the column for free
+text; if the sheet has none, give the first unused column to the right of the table.
 
 ## Output for FORMAT: DOCX
 
@@ -74,7 +85,12 @@ Blocks are numbered `[n]`. A paragraph is `P`; a table lists its rows `r0`, `r1`
 ]}
 ```
 
-One entry per question, in document order. For a question in a paragraph give `block` and leave
+One entry per question, in document order, each block and cell at most once. The question cell
+(`table_row`, `table_col`) is the cell that holds the question text: not the number column, not
+an empty response cell. Rows that only hold a note or a remark under a question are not questions.
+`place: "cell"` needs a different, empty cell of the same row; when the answer would have to go
+into the question's own cell or no empty cell exists, use `paragraph_below`. A paragraph is a
+question only when it asks something of the vendor; instructions and descriptions are not. For a question in a paragraph give `block` and leave
 `table_row`/`table_col` null; its answer is a new paragraph under it (`paragraph_below`). For a
 question in a table give the table's `block` and the cell's `table_row` and `table_col`. If the
 table has an empty response cell for that row, use `"place": "cell"` and name that cell (it must

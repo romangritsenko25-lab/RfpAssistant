@@ -8,9 +8,9 @@
   <ul>
     {% for s in layout.sheets %}
     {% if s.has_questions %}
-    <li>Лист «{{ s.sheet }}»: вопросы — колонка {{ s.question_col }}, ответ — колонка {{ s.answer_targets.text_col }}{% if s.answer_header %} (новая колонка «{{ s.answer_header }}»){% endif %}{% if s.answer_targets.short_answer_col %}, короткий ответ — колонка {{ s.answer_targets.short_answer_col }}{% endif %}{% if s.answer_targets.source_col %}, источник — колонка {{ s.answer_targets.source_col }}{% endif %}{% if s.skipped_rows %}; пропущено строк-заголовков: {{ s.skipped_rows }}{% endif %}</li>
+    <li>Лист «{{ s.sheet }}»: вопросы — колонка {{ s.question_col }}, ответ — колонка {{ s.answer_targets.text_col }}{% if s.answer_header %} (новая колонка «{{ s.answer_header }}»){% endif %}{% if s.answer_targets.short_answer_col %}, короткий ответ — колонка {{ s.answer_targets.short_answer_col }}{% endif %}{% if s.answer_targets.choice_cols %}, ответ-отметка: {% for value, col in s.answer_targets.choice_cols.items() %}«{{ value }}» — колонка {{ col }}{% if not loop.last %}, {% endif %}{% endfor %} (запись отметок пока не выполняется){% endif %}{% if s.answer_targets.source_col %}, источник — колонка {{ s.answer_targets.source_col }}{% endif %}{% if s.skipped_rows %}; пропущено строк-заголовков: {{ s.skipped_rows }}{% endif %}</li>
     {% else %}
-    <li>Лист «{{ s.sheet }}»: вопросов нет</li>
+    <li>Лист «{{ s.sheet }}»: {% if s.repeat_of %}повторяет вопросы листа «{{ s.repeat_of }}», пропущен{% elif s.left_out %}разметка модели отклонена ({{ s.left_out }}){% else %}вопросов нет{% endif %}</li>
     {% endif %}
     {% endfor %}
   </ul>

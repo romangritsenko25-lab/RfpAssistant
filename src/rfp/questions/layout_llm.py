@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from openpyxl import load_workbook
+from openpyxl.utils import column_index_from_string, get_column_letter
 from pydantic import BaseModel, ValidationError
 
 from rfp.llm import ChatClient, LLMUsage
@@ -22,6 +23,7 @@ from rfp.models import Question
 from rfp.questions.docx_layout import DocxItem, DocxReply, build_questions, render_windows
 from rfp.questions.docx_questions import extract_docx_questions
 from rfp.questions.layout_map import LayoutMap, SheetMap, map_from_layout
+from rfp.questions.layout_repeats import find_repeat_sheets
 from rfp.questions.layout_validate import LayoutRejected, check_sheet_map
 from rfp.questions.xlsx_layout import detect_xlsx_layout
 from rfp.questions.xlsx_questions import extract_xlsx_questions
@@ -98,7 +100,12 @@ def resolve_xlsx(
             log.warning("Layout call failed: %s", exc)
         if calls and calls[-1].error is None:
             calls[-1].error = note
-    return _by_rules(path, manual, "rules", calls, note)
+    try:
+        return _by_rules(path, manual, "rules", calls, note)
+    except InvalidInputError as exc:
+        if note is None:
+            raise
+        raise InvalidInputError(f"{exc} The model's layout was not used: {note}") from exc
 
 
 def _by_rules(
@@ -148,10 +155,12 @@ def _by_model(
     snapshots = load_snapshot(path)
     if only_sheet is not None and only_sheet not in snapshots:
         raise InvalidInputError(f"Sheet '{only_sheet}' not found; available: {', '.join(snapshots)}.")
-    names = [only_sheet] if only_sheet else list(snapshots)
+    # Hidden sheets hold lookups and scoring, not questions for the vendor; only an explicit choice opens one.
+    names = [only_sheet] if only_sheet else [n for n, snap in snapshots.items() if not snap.hidden]
     proposed: dict[str, SheetMap] = {}
     for group in _groups([render_sheet(snapshots[n]) for n in names]):
         reply = _ask(llm, prompt, "XLSX", "\n\n".join(group), calls)
+        _repair_reply(reply, snapshots)
         try:
             for sheet_map in _XlsxReply.model_validate(reply).sheets:
                 proposed[sheet_map.sheet] = sheet_map
@@ -162,14 +171,21 @@ def _by_model(
         raise LayoutRejected(f"the map names sheets that do not exist: {', '.join(unknown)}")
 
     proposed = {n: m for n, m in proposed.items() if n in names}  # a sheet we did not ask about is ignored
-    checked = [check_sheet_map(m, snapshots[m.sheet]) for m in proposed.values() if m.has_questions]
+    checked: list[SheetMap] = []
+    left_out: dict[str, str] = {}
+    for sheet_map in (m for m in proposed.values() if m.has_questions):
+        try:
+            checked.append(check_sheet_map(sheet_map, snapshots[sheet_map.sheet]))
+        except LayoutRejected as exc:  # one bad sheet does not cost the others
+            left_out[sheet_map.sheet] = str(exc)
     if not checked:
-        raise LayoutRejected("the model found no sheet with questions")
-    questions: list[Question] = []
+        raise LayoutRejected("; ".join(left_out.values()) or "the model found no sheet with questions")
+    checked.sort(key=lambda m: names.index(m.sheet))  # workbook order: a repeat comes after its original
+    by_sheet: dict[str, list[Question]] = {}
     for sheet_map in checked:
         targets = sheet_map.answer_targets
         assert targets is not None and sheet_map.question_col is not None
-        found = extract_xlsx_questions(
+        by_sheet[sheet_map.sheet] = extract_xlsx_questions(
             path,
             sheet_map.sheet,
             sheet_map.question_col,
@@ -179,13 +195,60 @@ def _by_model(
             last_row=sheet_map.last_question_row,
             skip_rows=frozenset(sheet_map.section_header_rows),
         )
-        questions += found
+    repeats = find_repeat_sheets(by_sheet)
+    questions = [q for sheet, found in by_sheet.items() if sheet not in repeats for q in found]
     if not questions:
         raise LayoutRejected("no questions were read with the model's map")
     questions = [q.model_copy(update={"qid": f"q{n}"}) for n, q in enumerate(questions, 1)]
-    done = {m.sheet: m for m in checked}
+    done = {
+        m.sheet: SheetMap(sheet=m.sheet, has_questions=False, repeat_of=repeats[m.sheet])
+        if m.sheet in repeats
+        else m
+        for m in checked
+    }
+    for name, reason in left_out.items():
+        done[name] = SheetMap(sheet=name, has_questions=False, left_out=reason)
     ordered = [done.get(name) or proposed[name] for name in names if name in proposed]
     return LayoutResolution(questions, LayoutMap(source="llm", sheets=ordered), calls)
+
+
+def _repair_reply(reply: dict, snapshots: dict) -> None:
+    """Small slips of the model that need no judgement, mended before the reply is validated.
+
+    Mark columns that are not at least two distinct column letters are dropped: the model meant a
+    drop-down list or a comment column. A sheet with a short-answer column but no text column gets
+    the first free column to the right of everything on the sheet; the program titles it, as for a
+    table without an answer column.
+    """
+    for raw in reply.get("sheets") or []:
+        targets = raw.get("answer_targets") if isinstance(raw, dict) else None
+        if not isinstance(targets, dict):
+            continue
+        choice = targets.get("choice_cols")
+        letters = [c for c in choice.values() if isinstance(c, str) and c.isalpha()] if choice else []
+        if choice and (len(letters) != len(choice) or len(set(letters)) != len(letters) or len(letters) < 2):
+            targets["choice_cols"] = choice = None
+        text = targets.get("text_col")
+        if choice and isinstance(text, str) and text.upper() in {c.upper() for c in letters}:
+            targets["text_col"] = None  # a column titled with an answer is not free text
+        snap = snapshots.get(raw.get("sheet"))
+        if snap is None:
+            continue
+        text = targets.get("text_col")
+        has_list = (
+            isinstance(text, str)
+            and text.isalpha()
+            and snap.list_values(column_index_from_string(text.upper()), range(1, snap.max_row + 1))
+        )
+        if has_list and not targets.get("short_answer_col"):
+            # a column with a drop-down list is a short answer, whatever the model called it
+            targets["short_answer_col"], targets["text_col"] = text, None
+        if targets.get("text_col") or not snap.cells:
+            continue
+        named = [raw.get("question_col"), raw.get("number_col"), targets.get("short_answer_col")]
+        named += [targets.get("source_col"), *(choice.values() if choice else [])]
+        used = [column_index_from_string(c.upper()) for c in named if isinstance(c, str) and c.isalpha()]
+        targets["text_col"] = get_column_letter(max([*(col for _, col in snap.cells), *used]) + 1)
 
 
 def _groups(texts: list[str]) -> list[list[str]]:

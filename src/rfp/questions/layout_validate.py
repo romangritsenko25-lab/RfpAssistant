@@ -23,7 +23,9 @@ def check_sheet_map(sheet_map: SheetMap, snap: SheetSnapshot) -> SheetMap:
     Rules: the answer columns differ from the question and number columns and from each other; the
     declared rows lie inside the sheet and the question cells hold text; there is at least one
     question; answer cells never hold or share a merged cell with their question; an answer column
-    that is already mostly filled is refused; allowed values come from the sheet's drop-down list.
+    that is already mostly filled is refused; allowed values come from the sheet's drop-down list;
+    mark columns (``choice_cols``) are at least two, distinct, empty, not combined with a short answer
+    column, and each is titled with its value above the first question.
     """
     targets = sheet_map.answer_targets
     assert targets is not None and sheet_map.question_col is not None  # guaranteed by SheetMap
@@ -33,6 +35,7 @@ def check_sheet_map(sheet_map: SheetMap, snap: SheetSnapshot) -> SheetMap:
     named = [("question", sheet_map.question_col), ("number", sheet_map.number_col)]
     named += [("short answer", targets.short_answer_col), ("answer text", targets.text_col)]
     named += [("source", targets.source_col)]
+    named += [(f"mark '{value}'", col) for value, col in (targets.choice_cols or {}).items()]
     seen: dict[str, str] = {}
     for role, col in named:
         if col is None:
@@ -56,6 +59,7 @@ def check_sheet_map(sheet_map: SheetMap, snap: SheetSnapshot) -> SheetMap:
     outside = [r for r in sheet_map.section_header_rows if not 1 <= r <= snap.max_row]
     if outside:
         problems.append(f"{where}: section header rows {outside} are outside the sheet")
+    problems += _check_choice_cols(snap, targets, header, sheet_map.first_question_row or header + 1)
     if problems:
         raise LayoutRejected("; ".join(problems[:MAX_PROBLEMS]))
 
@@ -74,7 +78,11 @@ def check_sheet_map(sheet_map: SheetMap, snap: SheetSnapshot) -> SheetMap:
         raise LayoutRejected("; ".join(problems[:MAX_PROBLEMS]))
 
     for col in targets.columns():
-        problems += _check_target_column(snap, col, question_idx, question_rows)
+        # A drop-down column may already hold choices (a filled copy); nothing is lost by listing it.
+        listed = col == targets.short_answer_col and snap.list_values(
+            column_index_from_string(col), range(first, last + 1)
+        )
+        problems += _check_target_column(snap, col, question_idx, question_rows, bool(listed))
     allowed, allowed_ok = _check_allowed_values(
         snap, targets.short_answer_col, targets.allowed_values, first, last
     )
@@ -104,8 +112,32 @@ def check_sheet_map(sheet_map: SheetMap, snap: SheetSnapshot) -> SheetMap:
     )
 
 
+def _normal(text: str) -> str:
+    return "".join(ch for ch in text.casefold() if ch.isalnum())
+
+
+def _check_choice_cols(snap: SheetSnapshot, targets, header: int, first: int) -> list[str]:
+    """Rules for an answer given as a mark in one of several columns; empty when there are none."""
+    choices = targets.choice_cols
+    if not choices:
+        return []
+    where = f"sheet '{snap.name}'"
+    if len(choices) < 2:
+        return [f"{where}: a mark answer needs at least two columns"]
+    if targets.short_answer_col:
+        return [f"{where}: the short answer column and mark columns cannot both be used"]
+    problems = []
+    for value, col in choices.items():
+        index = column_index_from_string(col)
+        titles = [_normal(snap.text(row, index)) for row in range(1, max(header, first - 1) + 1)]
+        wanted = _normal(value)
+        if not wanted or not any(t and (wanted in t or t in wanted) for t in titles):
+            problems.append(f"{where}: column {col} is not titled '{value}' above the questions")
+    return problems
+
+
 def _check_target_column(
-    snap: SheetSnapshot, col: str, question_idx: int, question_rows: list[int]
+    snap: SheetSnapshot, col: str, question_idx: int, question_rows: list[int], filled_ok: bool = False
 ) -> list[str]:
     index = column_index_from_string(col)
     where = f"sheet '{snap.name}', column {col}"
@@ -119,7 +151,7 @@ def _check_target_column(
         if area is not None and area.contains(row, question_idx):
             return [f"{where}: cell {col}{row} is merged with the question cell"]
         filled += bool(cell)
-    if filled >= 2 and filled * 2 > len(question_rows):
+    if not filled_ok and filled >= 2 and filled * 2 > len(question_rows):
         return [f"{where}: already holds data in {filled} of {len(question_rows)} question rows"]
     return []
 

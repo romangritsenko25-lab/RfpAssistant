@@ -10,6 +10,8 @@ from pathlib import Path
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter, range_boundaries
 
+from rfp.questions.xlsx_x14 import read_x14_lists
+
 HEAD_ROWS = 25
 TAIL_ROWS = 5
 MIDDLE_ROWS = 5
@@ -60,6 +62,7 @@ class SheetSnapshot:
     name: str
     max_row: int
     max_col: int
+    hidden: bool = False
     cells: dict[tuple[int, int], str] = field(default_factory=dict)
     merged: list[Area] = field(default_factory=list)
     lists: list[ListRule] = field(default_factory=list)
@@ -82,16 +85,34 @@ class SheetSnapshot:
 
 
 def load_snapshot(path: Path) -> dict[str, SheetSnapshot]:
-    """All sheets of the workbook, in order. Cached formula results stand in for formulas."""
+    """All sheets of the workbook, in order. Cached formula results stand in for formulas.
+
+    Drop-down lists kept in the x14 extension, which openpyxl discards, are read from the sheet XML.
+    """
     workbook = load_workbook(path, data_only=True)
     try:
-        return {ws.title: _sheet_snapshot(workbook, ws) for ws in workbook.worksheets}
+        snapshots = {ws.title: _sheet_snapshot(workbook, ws) for ws in workbook.worksheets}
+        for name, extension_lists in read_x14_lists(path).items():
+            if name not in snapshots:
+                continue
+            for item in extension_lists:
+                areas = tuple(Area(*_bounds(part)) for part in item.sqref.split())
+                snapshots[name].lists.append(
+                    ListRule(areas, _list_values(workbook, workbook[name], item.formula))
+                )
+        return snapshots
     finally:
         workbook.close()
 
 
+def _bounds(reference: str) -> tuple[int, int, int, int]:
+    """(min_row, min_col, max_row, max_col) of ``C5`` or ``C5:D9``."""
+    min_col, min_row, max_col, max_row = range_boundaries(reference.replace("$", ""))
+    return min_row, min_col, max_row, max_col
+
+
 def _sheet_snapshot(workbook, ws) -> SheetSnapshot:
-    snapshot = SheetSnapshot(ws.title, ws.max_row or 0, ws.max_column or 0)
+    snapshot = SheetSnapshot(ws.title, ws.max_row or 0, ws.max_column or 0, ws.sheet_state != "visible")
     for row in ws.iter_rows():
         for cell in row:
             if cell.value is not None and str(cell.value).strip():

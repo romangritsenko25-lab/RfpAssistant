@@ -39,11 +39,30 @@ class AnswerTargets(BaseModel):
         default=None, description="Values the short answer may take, when the column has a drop-down list"
     )
     source_col: str | None = Field(default=None, description="Column for the source of the answer")
+    choice_cols: dict[str, str] | None = Field(
+        default=None,
+        description="Value -> column, when the answer is a mark (a cross) in one of several columns",
+    )
 
     @field_validator("text_col", "short_answer_col", "source_col", mode="before")
     @classmethod
     def _letters(cls, value: object) -> str | None:
         return _column(value)
+
+    @field_validator("choice_cols", mode="before")
+    @classmethod
+    def _choice_letters(cls, value: object) -> dict[str, str] | None:
+        if value is None or value == {}:
+            return None
+        if not isinstance(value, dict):
+            raise ValueError("choice_cols must map each value to a column letter")
+        cleaned: dict[str, str] = {}
+        for name, col in value.items():
+            letter = _column(col)
+            if not str(name).strip() or letter is None:
+                raise ValueError("choice_cols needs a value and a column letter in every entry")
+            cleaned[str(name).strip()] = letter
+        return cleaned
 
     @field_validator("text_col")
     @classmethod
@@ -53,7 +72,8 @@ class AnswerTargets(BaseModel):
         return value
 
     def columns(self) -> list[str]:
-        return [c for c in (self.short_answer_col, self.text_col, self.source_col) if c]
+        marks = list((self.choice_cols or {}).values())
+        return [c for c in (self.short_answer_col, self.text_col, self.source_col, *marks) if c]
 
 
 class SheetMap(BaseModel):
@@ -69,6 +89,10 @@ class SheetMap(BaseModel):
     # Set by code, never by the model:
     answer_header: str | None = Field(default=None, description="Title for a text column the sheet lacks")
     skipped_rows: int = Field(default=0, description="Section-header rows left out of the questions")
+    repeat_of: str | None = Field(
+        default=None, description="Sheet whose questions this one repeats; its rows are not questions"
+    )
+    left_out: str | None = Field(default=None, description="Why the model's map of this sheet was not used")
 
     @field_validator("question_col", "number_col", mode="before")
     @classmethod
