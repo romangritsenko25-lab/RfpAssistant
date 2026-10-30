@@ -101,15 +101,21 @@ class ScriptedLLM:
         self.calls += 1
         if "сақтау" in user:
             raise RuntimeError("model unavailable")
+        english = "Answer language: English" in user
         if "multi-factor" in user:
             body = {
-                "text": "Backups run daily.",
+                "text": "Backups run daily." if english else "Резервные копии делаются ежедневно.",
                 "status": "answered",
                 "confidence": 0.9,
                 "citations": [{"fragment": 1, "quote": BACKUP_QUOTE}],
             }
         else:
-            body = {"text": "No data.", "status": "no_data", "confidence": 0.9, "citations": []}
+            body = {
+                "text": "No data." if english else "Нет данных.",
+                "status": "no_data",
+                "confidence": 0.9,
+                "citations": [],
+            }
         usage = LLMUsage(model="gpt-4o-mini", prompt_tokens=100, completion_tokens=20, cost_usd=0.001)
         return LLMReply(content=json.dumps(body), usage=usage)
 

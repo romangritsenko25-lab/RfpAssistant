@@ -30,6 +30,8 @@ UNPARSED_TEXT = {
     "en": "The model response could not be parsed; manual review is required.",
 }
 
+LANGUAGE_NAME = {"ru": "Russian", "kk": "Kazakh", "en": "English"}
+
 _SHORT: tuple[ShortAnswer, ...] = ("yes", "no", "partial", "n/a")
 _STATUSES: tuple[AnswerStatus, ...] = ("answered", "no_data", "needs_review")
 _NON_WORD_RE = re.compile(r"[\W_]+")
@@ -81,8 +83,17 @@ def format_fragments(chunks: list[RetrievedChunk]) -> str:
     return "\n\n".join(parts)
 
 
-def build_user_message(question: str, chunks: list[RetrievedChunk]) -> str:
-    return f"Question:\n{question}\n\nFragments:\n\n{format_fragments(chunks)}"
+def build_user_message(question: str, chunks: list[RetrievedChunk], language: str = "en") -> str:
+    name = LANGUAGE_NAME.get(language, "English")
+    return f"Question:\n{question}\n\nAnswer language: {name}\n\nFragments:\n\n{format_fragments(chunks)}"
+
+
+def _language_reminder(language: str) -> str:
+    name = LANGUAGE_NAME.get(language, "English")
+    return (
+        f"\n\nReminder: your previous answer was not in {name}. Write the `text` field in {name} "
+        "(translate the fragments' content); keep every `quote` verbatim in the fragment's own language."
+    )
 
 
 def parse_model_json(raw: str) -> dict | None:
@@ -136,7 +147,8 @@ def answer_question(
 
     Without fragments the model is not called and the status is ``no_data``. An unparseable reply,
     an ``answered`` result with no verified citation, or confidence below the configured threshold
-    all give ``needs_review``.
+    all give ``needs_review``. An answer text in another language than the question is requested
+    once more with a reminder; if it is still in the wrong language the answer is ``needs_review``.
     """
     language = detect_language(question.text)
     if not chunks:
@@ -147,8 +159,17 @@ def answer_question(
         )
 
     system = settings.answer_prompt_path.read_text(encoding="utf-8")
-    reply = llm.complete_json(system, build_user_message(question.text, chunks))
+    user = build_user_message(question.text, chunks, language)
+    reply = llm.complete_json(system, user)
     data = parse_model_json(reply.content)
+    wrong_language = _text_in_wrong_language(data, language)
+    if wrong_language:
+        retry = llm.complete_json(system, user + _language_reminder(language))
+        retry_data = parse_model_json(retry.content)
+        if retry_data is not None:
+            wrong_language = _text_in_wrong_language(retry_data, language)
+            data = retry_data
+            reply = retry.model_copy(update={"usage": _sum_usage(reply.usage, retry.usage)})
     if data is None:
         answer = Answer(
             qid=question.qid, text=_message(UNPARSED_TEXT, language), status="needs_review", confidence=0.0
@@ -167,6 +188,8 @@ def answer_question(
         status = "needs_review"
     if not text.strip():
         status, text = "needs_review", _message(UNPARSED_TEXT, language)
+    elif wrong_language and status != "needs_review":
+        status = "needs_review"
 
     answer = Answer(
         qid=question.qid,
@@ -178,6 +201,24 @@ def answer_question(
     )
     return GeneratedAnswer(
         answer=answer, usage=reply.usage, rejected_citations=rejected, raw_response=reply.content
+    )
+
+
+def _text_in_wrong_language(data: dict | None, language: str) -> bool:
+    """True when the model's answer text is written in a language other than the question's."""
+    text = data.get("text") if data else None
+    return isinstance(text, str) and bool(text.strip()) and detect_language(text) != language
+
+
+def _sum_usage(first: LLMUsage, second: LLMUsage) -> LLMUsage:
+    cost = None if first.cost_usd is None or second.cost_usd is None else first.cost_usd + second.cost_usd
+    return first.model_copy(
+        update={
+            "prompt_tokens": first.prompt_tokens + second.prompt_tokens,
+            "completion_tokens": first.completion_tokens + second.completion_tokens,
+            "cost_usd": cost,
+            "latency_s": first.latency_s + second.latency_s,
+        }
     )
 
 

@@ -229,3 +229,81 @@ def test_format_fragments_numbers_from_one_and_shows_missing_date() -> None:
     rendered = format_fragments([undated])
 
     assert rendered.startswith("[1] Policy | section: Backups | effective: unknown | lang: en\nText")
+
+
+class SequenceLLM:
+    def __init__(self, *contents: str) -> None:
+        self.contents = list(contents)
+        self.calls: list[tuple[str, str]] = []
+
+    def complete_json(self, system: str, user: str) -> LLMReply:
+        self.calls.append((system, user))
+        return LLMReply(content=self.contents[len(self.calls) - 1], usage=USAGE)
+
+
+QUOTE = "Backups of production databases are made every day"
+RU_TEXT = "Резервные копии делаются каждый день [1]."
+
+
+@pytest.mark.parametrize(
+    ("text", "name"),
+    [
+        ("How often are backups made?", "English"),
+        ("Как часто делаются резервные копии?", "Russian"),
+        ("Сақтық көшірмелер қаншалықты жиі жасалады?", "Kazakh"),
+    ],
+)
+def test_user_message_names_answer_language(settings: Settings, text: str, name: str) -> None:
+    llm = SequenceLLM(reply(citations=[]), reply(citations=[]))
+
+    answer_question(question(text), CHUNKS, llm, settings)
+
+    assert f"Answer language: {name}" in llm.calls[0][1]
+
+
+def test_wrong_language_is_retried_once_and_fixed(settings: Settings) -> None:
+    citations = [{"fragment": 1, "quote": QUOTE}]
+    llm = SequenceLLM(reply(text=RU_TEXT, citations=citations), reply(citations=citations))
+
+    result = answer_question(question(), CHUNKS, llm, settings)
+
+    assert len(llm.calls) == 2
+    assert "previous answer was not in English" in llm.calls[1][1]
+    assert result.answer.status == "answered"
+    assert result.answer.text == "Backups run daily [1]."
+    assert result.usage is not None
+    assert result.usage.prompt_tokens == 200
+    assert result.usage.cost_usd == pytest.approx(0.002)
+
+
+def test_wrong_language_after_retry_needs_review(settings: Settings) -> None:
+    citations = [{"fragment": 1, "quote": QUOTE}]
+    llm = SequenceLLM(reply(text=RU_TEXT, citations=citations), reply(text=RU_TEXT, citations=citations))
+
+    result = answer_question(question(), CHUNKS, llm, settings)
+
+    assert len(llm.calls) == 2
+    assert result.answer.status == "needs_review"
+    assert result.answer.text == RU_TEXT
+    assert len(result.answer.citations) == 1
+
+
+def test_matching_language_makes_one_call(settings: Settings) -> None:
+    llm = FakeLLM(reply(text=RU_TEXT, citations=[{"fragment": 1, "quote": QUOTE}]))
+
+    result = answer_question(question("Как часто делаются резервные копии?"), CHUNKS, llm, settings)
+
+    assert len(llm.calls) == 1
+    assert result.answer.status == "answered"
+
+
+def test_no_data_in_wrong_language_is_retried(settings: Settings) -> None:
+    llm = SequenceLLM(
+        reply(text="В базе знаний нет данных.", status="no_data"),
+        reply(text="The knowledge base has no data on this.", status="no_data"),
+    )
+
+    result = answer_question(question(), CHUNKS, llm, settings)
+
+    assert result.answer.status == "no_data"
+    assert result.answer.text == "The knowledge base has no data on this."
