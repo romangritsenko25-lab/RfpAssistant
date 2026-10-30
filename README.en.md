@@ -7,7 +7,7 @@ answer carries a source and a quote, and when the knowledge base has nothing, th
 ("no data in the knowledge base").
 
 **This is a demo project, not a delivered order.** It is built as a sample result for the Andersen Kazakhstan task
-(terms of reference: `docs/tz-andersen.md`) at reduced scale: a 40-document knowledge base instead of 200.
+on Astana Hub at reduced scale: a 40-document knowledge base instead of 200, with the same acceptance criteria.
 The knowledge base, customers, certificates and figures in `data/` are fictional: the company is Steppelight
 Technologies, see `data/README.md`.
 
@@ -68,25 +68,28 @@ The figures below apply to the OpenAI models only.
 
 All figures come from reproducible runs; details are in `reports/`.
 
-**Answers, dev set, 2026-10-28** (`reports/quality-2026-10-28-dev.md`; set `dev` version `3a621ad4b6f2`,
-55 questions; answers `gpt-4o-mini`, judge `gpt-4o`, embeddings `text-embedding-3-small`):
+**Answers, held-out test set, 2026-10-30** (`reports/quality-2026-10-30-test.md`; set `test` version
+`58926e1cc8cd`: 53 questions in Russian, Kazakh and English, 11 of them without an answer in the knowledge base;
+answers `gpt-4o-mini`, judge `gpt-4o`, embeddings `text-embedding-3-small`). The set was built separately and was
+not used to tune retrieval or prompts.
 
-| Metric | Result |
-|---|---|
-| Correct answers | 75.0% |
-| Partially correct | 18.2% |
-| Incorrect | 6.8% |
-| Answers with a source | 97.7% |
-| Cited answers with a gold document as source | 95.3% |
-| Refusal on unanswerable questions (recall) | 90.9% (10/11) |
-| Questions found when parsing the source files | 100.0% (55/55) |
-| Time per question | 5.3 s |
-| Cost | $0.0003 per question, $0.0313 per 100 questions (judge excluded) |
+| Metric | Result | Threshold in the terms of reference |
+|---|---|---|
+| Correct answers | 81.0% | at least 75% |
+| Partially correct | 11.9% | - |
+| Incorrect | 7.1% | at most 10% |
+| Answers with a source | 95.2% | at least 95% |
+| Cited answers with a gold document as source | 95.0% | at least 90% |
+| "No data" on unanswerable questions | 100% (11/11) | 18 of 20 |
+| Questions found when parsing the source files | 100% (53/53) | at least 95% |
+| Time per question | 4.7 s | 100 questions in 15 min |
+| Cost | $0.0003 per question, $0.033 per 100 questions (judge excluded) | - |
 
-**The dev set was used to tune retrieval and prompts**, so these figures are indicative. The thresholds in the
-terms of reference apply to the full 100-question set.
+Accuracy is judged by a model against the reference answers; the report includes a sample of 10 pairs for manual
+checking. The thresholds are set for a 100-question set; this one has 53, so the figures are indicative.
 
-**The final figure, on the held-out test set: to be added.** There are no values yet.
+The dev set (55 questions) was used for tuning; its latest run is `reports/quality-2026-10-30-dev.md`
+(77.3% correct, 4.5% incorrect).
 
 **Layout on public questionnaires, 2026-10-29** (`reports/layout-2026-10-29-final.md`; model `gpt-4o-mini`):
 mode `llm` found 966 of 1096 reference questions (88.1%); 5 of 7 files at 95% or above. Below the threshold:
@@ -121,7 +124,7 @@ prompts/           answer, judge and layout prompts
 data/              fictional knowledge base (kb_src, kb) and the dev set (sets/dev)
 scripts/           knowledge base build, layout evaluation
 reports/           run reports
-docs/              terms of reference, brief, plan, licenses, tuning log
+docs/              licenses, tuning log, public questionnaire sources, screenshots
 tests/             tests
 ```
 
@@ -142,7 +145,10 @@ request to `/health`. Quality evaluation: `uv run python -m rfp.eval --set dev`.
 - The model layout call runs synchronously on upload, so a large file waits for the model.
 - The public questionnaires used to measure the layout are not in the repository because of their licenses
   (`data/public/` is in `.gitignore`; sources are listed in `docs/public-questionnaires.md`).
-- Quality on the held-out test set and on a local model has not been measured.
+- Quality and speed on a local model have not been measured.
+- Background jobs do not resume after a container restart: upload an unfinished job again.
+- Some English questions get a Russian answer when the retrieved fragments are in Russian (the terms of reference
+  require the question's language). A fix is in progress.
 
 ## Licenses
 
