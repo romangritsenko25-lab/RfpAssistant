@@ -4,6 +4,7 @@ from openpyxl import load_workbook
 from openpyxl.utils import column_index_from_string
 
 from rfp.models import Location, Question
+from rfp.questions.layout_map import AnswerTargets
 
 
 def extract_xlsx_questions(
@@ -16,11 +17,13 @@ def extract_xlsx_questions(
     *,
     last_row: int | None = None,
     skip_rows: frozenset[int] = frozenset(),
+    targets: AnswerTargets | None = None,
 ) -> list[Question]:
     """Read one question per row below ``header_row``; rows with an empty question cell are skipped.
 
     Columns are letters (``"B"``). ``number_col`` optionally names a column holding the item number.
     ``skip_rows`` lists rows that are not questions (section titles); ``last_row`` ends the scan.
+    ``targets`` adds the cells for the short answer, source and marks to every question's location.
     """
     workbook = load_workbook(path, read_only=True, data_only=True)
     try:
@@ -45,6 +48,10 @@ def extract_xlsx_questions(
                         row=row_number,
                         answer_col=answer_col.upper(),
                         question_col=question_col.upper(),
+                        short_col=targets.short_answer_col if targets else None,
+                        allowed_values=targets.allowed_values if targets else None,
+                        source_col=targets.source_col if targets else None,
+                        choice_cols=targets.choice_cols if targets else None,
                     ),
                 )
             )

@@ -4,13 +4,31 @@ The model proposes; this code decides. A map that breaks any rule is rejected as
 caller falls back to header rules.
 """
 
-from openpyxl.utils import column_index_from_string
+from openpyxl.utils import column_index_from_string, get_column_letter
 
 from rfp.questions.layout_map import SheetMap
 from rfp.questions.xlsx_layout import answer_title
 from rfp.questions.xlsx_snapshot import SheetSnapshot
 
 MAX_PROBLEMS = 5
+MAX_TITLE_CHARS = 60
+# Titles of a column made for a free-text reply; the existing one is preferred to a new column.
+_RESPONSE_TITLES = (
+    "notes",
+    "note",
+    "comment",
+    "response",
+    "explanation",
+    "answer",
+    "remark",
+    "ответ",
+    "комментар",
+    "примечан",
+    "пояснен",
+    "жауап",
+    "түсініктеме",
+    "ескертпе",
+)
 
 
 class LayoutRejected(ValueError):
@@ -77,6 +95,7 @@ def check_sheet_map(sheet_map: SheetMap, snap: SheetSnapshot) -> SheetMap:
     if problems:
         raise LayoutRejected("; ".join(problems[:MAX_PROBLEMS]))
 
+    targets = _existing_text_column(snap, sheet_map, targets, header, question_rows)
     for col in targets.columns():
         # A drop-down column may already hold choices (a filled copy); nothing is lost by listing it.
         listed = col == targets.short_answer_col and snap.list_values(
@@ -110,6 +129,39 @@ def check_sheet_map(sheet_map: SheetMap, snap: SheetSnapshot) -> SheetMap:
             "answer_header": new_title,
         }
     )
+
+
+def _is_response_title(title: str) -> bool:
+    folded = title.casefold()
+    return 0 < len(folded) <= MAX_TITLE_CHARS and any(word in folded for word in _RESPONSE_TITLES)
+
+
+def _existing_text_column(
+    snap: SheetSnapshot, sheet_map: SheetMap, targets, header: int, question_rows: list[int]
+):
+    """Targets whose text column is the sheet's own empty response column, when there is one.
+
+    The model tends to name a new column to the right although the table has a column titled
+    "Comments" or "Response" that is empty in the question rows. A drop-down column, and any column
+    already used for another part of the answer, is not a candidate.
+    """
+    if header < 1:
+        return targets
+    taken = {sheet_map.question_col, sheet_map.number_col, targets.short_answer_col, targets.source_col}
+    taken |= set((targets.choice_cols or {}).values())
+    current = snap.text(header, column_index_from_string(targets.text_col))
+    if _is_response_title(current):
+        return targets
+    for index in range(1, snap.max_col + 1):
+        col = get_column_letter(index)
+        if col in taken or not _is_response_title(snap.text(header, index)):
+            continue
+        if snap.list_values(index, range(header + 1, snap.max_row + 1)):
+            continue
+        if any(snap.text(row, index) for row in question_rows):
+            continue
+        return targets.model_copy(update={"text_col": col})
+    return targets
 
 
 def _normal(text: str) -> str:
@@ -161,13 +213,16 @@ def _check_allowed_values(
 ) -> tuple[list[str] | None, bool]:
     """The allowed values to keep and whether they agree with the sheet's drop-down list.
 
-    Without a drop-down list over the column the values cannot be verified and are dropped.
+    Without a drop-down list over the column the values cannot be verified and are dropped. When the
+    model gave none but the column has a list, the list itself is the allowed values.
     """
-    if not allowed or short_col is None:
+    if short_col is None:
         return None, True
     listed = snap.list_values(column_index_from_string(short_col), range(first, last + 1))
     if listed is None:
         return None, True
+    if not allowed:
+        return sorted(listed), True
     if {v.strip() for v in allowed} <= listed:
         return list(allowed), True
     return None, False

@@ -4,6 +4,7 @@ from docx import Document as open_docx
 from docx.document import Document as DocxDocument
 from docx.enum.style import WD_STYLE_TYPE
 from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 from docx.table import Table
 from docx.text.paragraph import Paragraph
@@ -11,6 +12,7 @@ from docx.text.paragraph import Paragraph
 from rfp.docx_blocks import iter_blocks
 from rfp.export.formatting import no_data_label, sources_line
 from rfp.models import Answer, Question
+from rfp.questions.placeholders import is_placeholder
 
 ANSWER_STYLE = "RFP Answer"
 _SOURCES_COLOR = RGBColor(0x59, 0x59, 0x59)
@@ -57,11 +59,24 @@ def _answer_paragraph(doc: DocxDocument, blocks: list, question: Question) -> Pa
             if target._tc is cell._tc:
                 raise ValueError(f"Question {question.qid}: the answer cell is the question cell")
             cell = target
-        # An empty cell keeps its own (empty) paragraph; a cell with text gets a new one after it.
+        # An empty cell keeps its own (empty) paragraph; a cell with only a template stub is emptied;
+        # a cell with text gets a new paragraph after it.
+        if cell.text.strip() and is_placeholder(cell.text):
+            _clear_cell(cell)
         return cell.add_paragraph() if cell.text.strip() else cell.paragraphs[0]
     new_p = OxmlElement("w:p")
     block._p.addnext(new_p)
     return Paragraph(new_p, doc)
+
+
+def _clear_cell(cell) -> None:
+    for extra in cell.paragraphs[1:]:
+        extra._p.getparent().remove(extra._p)
+    first = cell.paragraphs[0]
+    for run in list(first.runs):
+        run._r.getparent().remove(run._r)
+    for child in [c for c in first._p if c.tag != qn("w:pPr")]:
+        first._p.remove(child)
 
 
 def _write_answer(paragraph: Paragraph, question: Question, answer: Answer) -> None:

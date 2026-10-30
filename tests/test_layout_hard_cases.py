@@ -178,7 +178,7 @@ def test_text_column_is_filled_when_the_model_gives_none(tmp_path: Path) -> None
     }
     result = resolve_xlsx(path, ManualLayout(), llm=ReplyLLM({"sheets": [entry]}), prompt="p")
     sec = result.layout.sheets[0]
-    assert sec.answer_targets.text_col == "E"
+    assert sec.answer_targets.text_col == "D"  # the empty "Notes" column, not a new one to the right
 
 
 def test_failing_sheet_does_not_cost_the_others(tmp_path: Path) -> None:
@@ -227,7 +227,7 @@ def test_text_column_that_is_a_mark_column_is_moved_to_a_free_one(tmp_path: Path
     result = resolve_xlsx(path, ManualLayout(), llm=ReplyLLM({"sheets": [entry]}), prompt="p")
     targets = result.layout.sheets[0].answer_targets
     assert targets.choice_cols == {"Yes": "C", "No": "D", "Not Applicable": "E"}
-    assert targets.text_col == "G"
+    assert targets.text_col == "F"  # the empty "Notes" column
 
 
 def test_text_column_with_a_drop_down_list_becomes_the_short_answer(tmp_path: Path) -> None:
@@ -240,4 +240,4 @@ def test_text_column_with_a_drop_down_list_becomes_the_short_answer(tmp_path: Pa
     }
     result = resolve_xlsx(path, ManualLayout(), llm=ReplyLLM({"sheets": [entry]}), prompt="p")
     targets = result.layout.sheets[0].answer_targets
-    assert (targets.short_answer_col, targets.text_col) == ("C", "E")
+    assert (targets.short_answer_col, targets.text_col) == ("C", "D")

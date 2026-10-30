@@ -1,9 +1,9 @@
 """The layout map: where the questions are and where each part of an answer goes.
 
 For XLSX the map has one entry per sheet. It names the targets of every part of an answer (short
-value, full text, source) even though only the text column is written today, so that a later stage
-can start filling the others without changing the map. The map comes from the model (``llm``), from
-header rules (``rules``) or from the user (``manual``); in every case it is verified by code before use.
+value, full text, source, marks); the export writes each part into its own column. The map comes
+from the model (``llm``), from header rules (``rules``) or from the user (``manual``); in every
+case it is verified by code before use.
 """
 
 import re

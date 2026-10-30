@@ -16,6 +16,11 @@ def sources_line(answer: Answer) -> str:
     return f"Sources: {cited}"
 
 
+def has_source_cell(question: Question) -> bool:
+    """True when the sheet has its own column for sources, so they stay out of the answer text."""
+    return bool(question.location.source_col)
+
+
 def answer_with_sources(answer: Answer) -> str:
     """Answer text followed by its sources on a new line, for single-cell output."""
     sources = sources_line(answer)
@@ -31,4 +36,4 @@ def exported_text(question: Question, answer: Answer) -> str:
     """Exactly what is written for this answer: the fixed note when the knowledge base had no data."""
     if answer.status == "no_data":
         return no_data_label(question)
-    return answer_with_sources(answer)
+    return answer.text if has_source_cell(question) else answer_with_sources(answer)

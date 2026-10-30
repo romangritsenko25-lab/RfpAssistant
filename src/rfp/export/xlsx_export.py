@@ -8,6 +8,7 @@ from openpyxl.styles import PatternFill
 from openpyxl.utils import column_index_from_string
 
 from rfp.export.formatting import exported_text
+from rfp.export.targets import find_mark, mark_column, short_value, source_value
 from rfp.models import Answer, Question
 
 NO_DATA_FILL = PatternFill("solid", fgColor="FFF2CC")  # soft yellow: a person has to look here
@@ -33,9 +34,16 @@ def export_xlsx(
 
     Refuses (``ValueError``) to write into the question column or over a cell that already holds
     the question text, so a wrong column choice cannot destroy the questions. An answer of status
-    ``no_data`` is written as a fixed note in the language of the question, on a yellow fill.
+    ``no_data`` is written as a fixed note in the language of the question, on a yellow fill. When
+    the sheet has them, the short value (only one the sheet allows), the source and the mark column
+    of an answered question are written too.
     """
     workbook = load_workbook(source)
+    marks = {
+        q.location.sheet: find_mark(workbook[q.location.sheet], q.location.choice_cols)
+        for q in questions
+        if q.location.sheet in workbook.sheetnames and q.location.choice_cols
+    }
     for question in questions:
         answer = answers.get(question.qid)
         if answer is None:
@@ -56,6 +64,11 @@ def export_xlsx(
             cell.data_type = "s"
         if answer.status == "no_data":
             cell.fill = NO_DATA_FILL
+        sheet = workbook[location.sheet]
+        for col, value in extra_cells(question, answer, marks.get(location.sheet, "")):
+            if col.upper() == (location.question_col or "").upper():
+                raise ValueError(f"Question {question.qid}: column {col} is the question column")
+            sheet[f"{col}{location.row}"].value = value
     for header in answer_headers:
         _write_header(workbook, header)
     workbook.save(dest)
@@ -70,3 +83,14 @@ def _write_header(workbook, header: AnswerHeader) -> None:
     index = column_index_from_string(header.col)
     if index > 1:
         cell._style = copy(sheet.cell(row=header.row, column=index - 1)._style)
+
+
+def extra_cells(question: Question, answer: Answer, mark: str) -> list[tuple[str, str]]:
+    """(column, value) of the short answer, source and mark cells to write for this question."""
+    location = question.location
+    cells: list[tuple[str | None, str | None]] = [
+        (location.short_col, short_value(location, answer)),
+        (location.source_col, source_value(answer)),
+        (mark_column(location, answer), mark),
+    ]
+    return [(col, value) for col, value in cells if col and value]

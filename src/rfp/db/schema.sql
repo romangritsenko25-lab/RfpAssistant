@@ -67,10 +67,13 @@ CREATE TABLE IF NOT EXISTS job_items (
     model_text   text,
     model_status text,
     note         text,
+    short        text,
     reviewed_by  text,
     reviewed_at  timestamptz,
     PRIMARY KEY (job_id, qid)
 );
+
+ALTER TABLE job_items ADD COLUMN IF NOT EXISTS short text;
 
 -- Reviewed answers saved to the knowledge base; each one is the document REF-<id> with a single chunk.
 CREATE TABLE IF NOT EXISTS reference_answers (

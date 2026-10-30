@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from rfp.config import Settings
 from rfp.documents.language import detect_language
 from rfp.llm import ChatClient, LLMUsage
-from rfp.models import Answer, AnswerStatus, Citation, Question, RetrievedChunk
+from rfp.models import Answer, AnswerStatus, Citation, Question, RetrievedChunk, ShortAnswer
 
 # A quote that is not a verbatim substring still counts when at least this share of its characters
 # is found, in order, inside the fragment as runs of MIN_RUN+ characters. This tolerates a dropped
@@ -30,6 +30,7 @@ UNPARSED_TEXT = {
     "en": "The model response could not be parsed; manual review is required.",
 }
 
+_SHORT: tuple[ShortAnswer, ...] = ("yes", "no", "partial", "n/a")
 _STATUSES: tuple[AnswerStatus, ...] = ("answered", "no_data", "needs_review")
 _NON_WORD_RE = re.compile(r"[\W_]+")
 _FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$", re.IGNORECASE)
@@ -168,11 +169,22 @@ def answer_question(
         status, text = "needs_review", _message(UNPARSED_TEXT, language)
 
     answer = Answer(
-        qid=question.qid, text=text.strip(), status=status, confidence=confidence, citations=citations
+        qid=question.qid,
+        text=text.strip(),
+        status=status,
+        confidence=confidence,
+        citations=citations,
+        short=_short(data.get("short")) if status == "answered" else None,
     )
     return GeneratedAnswer(
         answer=answer, usage=reply.usage, rejected_citations=rejected, raw_response=reply.content
     )
+
+
+def _short(value: object) -> ShortAnswer | None:
+    """The model's short rating when it is one of the four known values, else None."""
+    cleaned = value.strip().casefold() if isinstance(value, str) else ""
+    return next((v for v in _SHORT if v == cleaned), None)
 
 
 def _confidence(value: object) -> float:

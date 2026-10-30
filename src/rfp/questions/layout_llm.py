@@ -194,6 +194,7 @@ def _by_model(
             sheet_map.number_col,
             last_row=sheet_map.last_question_row,
             skip_rows=frozenset(sheet_map.section_header_rows),
+            targets=targets,
         )
     repeats = find_repeat_sheets(by_sheet)
     questions = [q for sheet, found in by_sheet.items() if sheet not in repeats for q in found]

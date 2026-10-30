@@ -15,6 +15,7 @@ from rfp.docx_blocks import heading_level, iter_blocks
 from rfp.models import Location, Question
 from rfp.questions.docx_questions import unique_cells
 from rfp.questions.layout_validate import LayoutRejected
+from rfp.questions.placeholders import is_placeholder
 from rfp.questions.rules import is_number_label, question_text, split_number
 
 MAX_PARAGRAPH_CHARS = 200
@@ -149,7 +150,7 @@ def _table_question(table: Table, item: DocxItem, used_cells: set[tuple[int, int
             raise LayoutRejected(f"{where}: the answer cell does not exist")
         if target._tc is cell._tc:
             raise LayoutRejected(f"{where}: the answer cell is the question cell")
-        if target.text.strip():
+        if not is_placeholder(target.text):
             raise LayoutRejected(f"{where}: the answer cell r{answer_row} c{answer_col} is not empty")
         slot = (item.block, answer_row, answer_col)
         if slot in used_cells:

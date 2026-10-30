@@ -337,7 +337,7 @@ def test_a_new_answer_column_gets_a_title(tmp_path):
             {"sheet": "Sheet1", "header_row": 1, "question_col": "B", "answer_targets": {"text_col": "E"}}
         ]
     }
-    result, _ = resolve(plain_workbook(tmp_path / "p.xlsx"), reply)
+    result, _ = resolve(plain_workbook(tmp_path / "p.xlsx", ["ID", "Question", "Owner"]), reply)
 
     assert result.layout.source == "llm"
     assert result.layout.sheets[0].answer_header == "Answer"

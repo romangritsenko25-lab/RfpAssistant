@@ -41,6 +41,7 @@ Return one JSON object and nothing else:
   "text": "answer text with [N] markers",
   "status": "answered" | "no_data" | "needs_review",
   "confidence": 0.0-1.0,
+  "short": "yes" | "no" | "partial" | "n/a" | null,
   "citations": [{"fragment": N, "quote": "..."}]
 }
 ```
@@ -50,3 +51,8 @@ Return one JSON object and nothing else:
   and must support the statement. Do not translate, rephrase, or join separate passages in one quote.
   Use several citations when several fragments or passages are needed.
 - For `no_data`, `citations` is an empty list.
+- `short` is the one-word rating of the answer, used when the questionnaire has a Yes/No column.
+  Set it only when the question can be answered with yes or no and `status` is `answered`: `yes` when the
+  fragments confirm it fully, `no` when they state it is not so, `partial` when only a part applies,
+  `n/a` when the fragments say it does not apply. For any other question, and for `no_data` and
+  `needs_review`, use `null`. Never use `no` just because the fragments are silent.

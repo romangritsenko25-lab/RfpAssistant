@@ -16,9 +16,11 @@ from openpyxl.utils import column_index_from_string, get_column_letter
 
 from rfp.docx_blocks import iter_blocks
 from rfp.export.formatting import exported_text
-from rfp.export.xlsx_export import AnswerHeader
+from rfp.export.targets import find_mark
+from rfp.export.xlsx_export import AnswerHeader, extra_cells
 from rfp.models import Answer, Question
 from rfp.questions.docx_questions import unique_cells
+from rfp.questions.placeholders import is_placeholder
 
 MAX_PROBLEMS = 5
 
@@ -48,6 +50,7 @@ def verify_xlsx(
         problems: list[str] = []
         for name in before.sheetnames:
             problems += _check_sheet(before[name], after[name], writes)
+        problems += _check_short_values(after, questions)
         if problems:
             raise ExportVerificationError(problems)
     finally:
@@ -55,9 +58,30 @@ def verify_xlsx(
         after.close()
 
 
+def _check_short_values(after, questions: list[Question]) -> list[str]:
+    """No short-answer cell may hold a value the sheet does not allow."""
+    problems = []
+    for question in questions:
+        location = question.location
+        if not (location.short_col and location.allowed_values and location.sheet and location.row):
+            continue
+        value = after[location.sheet][f"{location.short_col}{location.row}"].value
+        if value is not None and str(value).strip() not in {v.strip() for v in location.allowed_values}:
+            problems.append(
+                f"sheet '{location.sheet}', cell {location.short_col}{location.row}: "
+                f"'{value}' is not an allowed value"
+            )
+    return problems
+
+
 def _expected_writes(workbook, questions, answers, headers) -> dict[tuple[str, int, int], tuple[str, str]]:
     """Address -> (expected value, what it is for)."""
     writes: dict[tuple[str, int, int], tuple[str, str]] = {}
+    marks = {
+        q.location.sheet: find_mark(workbook[q.location.sheet], q.location.choice_cols)
+        for q in questions
+        if q.location.sheet in workbook.sheetnames and q.location.choice_cols
+    }
     for question in questions:
         answer = answers.get(question.qid)
         location = question.location
@@ -65,6 +89,9 @@ def _expected_writes(workbook, questions, answers, headers) -> dict[tuple[str, i
             continue
         key = (location.sheet, location.row, column_index_from_string(location.answer_col))
         writes[key] = (exported_text(question, answer), f"answer for {question.qid}")
+        for col, value in extra_cells(question, answer, marks.get(location.sheet, "")):
+            extra = (location.sheet, location.row, column_index_from_string(col))
+            writes[extra] = (value, f"short answer, source or mark for {question.qid}")
     for header in headers:
         key = (header.sheet, header.row, column_index_from_string(header.col))
         if workbook[header.sheet].cell(row=key[1], column=key[2]).value is None:
@@ -184,6 +211,9 @@ def _check_table(block_index: int, old: Table, new: Table, in_cell: dict) -> lis
 def _expected_cell(paragraphs: list[str], answers: list[str]) -> list[str]:
     if not answers:
         return paragraphs
-    if not any(p.strip() for p in paragraphs):
+    text = "\n".join(paragraphs)
+    if text.strip() and is_placeholder(text):
+        return list(answers)  # the template stub is replaced by the answer
+    if not text.strip():
         return [answers[0], *paragraphs[1:], *answers[1:]]
     return [*paragraphs, *answers]

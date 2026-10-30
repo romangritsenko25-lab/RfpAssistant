@@ -18,8 +18,13 @@ judge the pattern from the rows you have.
 3. An answer target is a cell that is empty, or is headed like a response column ("Answer",
    "Response", "Ответ", "Комментарий поставщика", "Жауап"), and is not the question's own cell.
    Never choose a cell or column that contains the question text.
-4. Prefer an existing empty response column. If the table has no such column, use the first
-   unused column to the right of the table; the program adds a title for it.
+4. Prefer an existing empty response column. Look at the header row first: a column titled
+   Notes, Comments, Comment, Response, Explanation, Answer, Remarks, Ответ, Комментарий,
+   Примечание, Пояснение, Жауап or similar is the place for `text_col` when it is empty in the
+   question rows, even if it sits far from the question column or holds only a few example rows.
+   Never name a new column to the right of the table while such a column exists. Only if the
+   table has no such column, use the first unused column to the right of the table; the program
+   adds a title for it.
 5. Rows or paragraphs that only title a section (often bold, merged across the row, or without a
    number while neighbours have one) are section headers: list them, do not treat them as questions.
 6. A sheet with instructions, a cover page, a glossary, contacts or reference data has no
@@ -29,7 +34,8 @@ judge the pattern from the rows you have.
    values exactly into `allowed_values`; never invent values. If the sheet has a separate column
    for a comment, explanation or free text, that is `text_col`; a column for a document,
    reference, page or source is `source_col`. When there is only one response column, it is
-   `text_col` and the other targets are null.
+   `text_col` and the other targets are null. A drop-down column plus a comment column gives
+   both `short_answer_col` and `text_col`.
 8. A sheet whose rows copy the questions of another sheet (a change log, a cross-reference, an
    evaluation or analysis view) is not a place for answers: report it with `has_questions` false.
    A sheet's cells may be formulas; the values shown are their stored results, so a question shown
@@ -88,7 +94,8 @@ Blocks are numbered `[n]`. A paragraph is `P`; a table lists its rows `r0`, `r1`
 One entry per question, in document order, each block and cell at most once. The question cell
 (`table_row`, `table_col`) is the cell that holds the question text: not the number column, not
 an empty response cell. Rows that only hold a note or a remark under a question are not questions.
-`place: "cell"` needs a different, empty cell of the same row; when the answer would have to go
+`place: "cell"` needs a different, empty cell of the same row; a cell that only holds a template
+stub such as "[insert response]", "Click here to enter text" or "Type your answer" counts as empty; when the answer would have to go
 into the question's own cell or no empty cell exists, use `paragraph_below`. A paragraph is a
 question only when it asks something of the vendor; instructions and descriptions are not. For a question in a paragraph give `block` and leave
 `table_row`/`table_col` null; its answer is a new paragraph under it (`paragraph_below`). For a

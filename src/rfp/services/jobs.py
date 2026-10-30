@@ -30,7 +30,7 @@ from rfp.config import Settings
 from rfp.embeddings import Embedder
 from rfp.export import AnswerHeader, ExportVerificationError, export_answers
 from rfp.llm import ChatClient
-from rfp.models import Answer, AnswerStatus, Citation, Location, Question, RetrievedChunk
+from rfp.models import Answer, AnswerStatus, Citation, Location, Question, RetrievedChunk, ShortAnswer
 from rfp.questions import (
     LayoutMap,
     LayoutResolution,
@@ -102,6 +102,7 @@ class JobItem(BaseModel):
     model_text: str | None = Field(default=None, description="The model's original draft")
     citations: list[Citation]
     note: str | None = None
+    short: ShortAnswer | None = Field(default=None, description="The model's yes/no/partial/n/a rating")
     reviewed_by: str | None = None
     reviewed_at: datetime | None = None
 
@@ -278,7 +279,7 @@ def _load_items(conn: psycopg.Connection, job_id: int, qid: str | None = None) -
         rows = cur.execute(
             f"""
             SELECT qid, question, status, confidence, text, model_text, citations, note,
-                   reviewed_by, reviewed_at
+                   short, reviewed_by, reviewed_at
             FROM job_items WHERE job_id = %s {where} ORDER BY ord
             """,
             params,
@@ -357,9 +358,11 @@ def _process_item(
     )
     if generated is None:
         text, status, confidence, citations, note = FAILED_ANSWER_TEXT, "needs_review", 0.0, [], error
+        short = None
     else:
         answer = generated.answer
         text, status, confidence, citations = answer.text, answer.status, answer.confidence, answer.citations
+        short = answer.short
         note = (
             f"{generated.rejected_citations} model citation(s) rejected: not found in the fragments."
             if generated.rejected_citations
@@ -368,7 +371,7 @@ def _process_item(
     conn.execute(
         """
         UPDATE job_items SET status = %s, text = %s, confidence = %s, citations = %s,
-                             model_text = %s, model_status = %s, note = %s
+                             model_text = %s, model_status = %s, note = %s, short = %s
         WHERE job_id = %s AND qid = %s
         """,
         (
@@ -379,6 +382,7 @@ def _process_item(
             text if generated else None,
             status if generated else None,
             note,
+            short,
             job_id,
             question.qid,
         ),
@@ -496,6 +500,8 @@ def export_job(conn: psycopg.Connection, job_id: int, username: str) -> ExportFi
             status=_export_status(i.status),
             confidence=min(1.0, max(0.0, i.confidence)),
             citations=i.citations,
+            # an edited text may no longer match the model's rating, so only drafts and approvals keep it
+            short=i.short if i.status in ("answered", "approved") else None,
         )
         for i in items
     }

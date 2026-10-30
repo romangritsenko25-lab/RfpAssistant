@@ -66,6 +66,11 @@ class Location(BaseModel):
     answer_table_col: int | None = None
     page: int | None = None
     line: int | None = None
+    # XLSX targets of the other parts of an answer, taken from the layout map (see AnswerTargets).
+    short_col: str | None = None
+    allowed_values: list[str] | None = None
+    source_col: str | None = None
+    choice_cols: dict[str, str] | None = None
 
 
 class Question(BaseModel):
@@ -83,6 +88,7 @@ class Citation(BaseModel):
 
 
 AnswerStatus = Literal["answered", "no_data", "needs_review"]
+ShortAnswer = Literal["yes", "no", "partial", "n/a"]
 
 
 class Answer(BaseModel):
@@ -91,3 +97,6 @@ class Answer(BaseModel):
     status: AnswerStatus
     confidence: float = Field(ge=0.0, le=1.0)
     citations: list[Citation] = Field(default_factory=list)
+    short: ShortAnswer | None = Field(
+        default=None, description="The model's short rating; only for an answered question"
+    )
