@@ -75,21 +75,26 @@ not used to tune retrieval or prompts.
 
 | Metric | Result | Threshold in the terms of reference |
 |---|---|---|
-| Correct answers | 81.0% | at least 75% |
+| Correct answers | 78.6% | at least 75% |
 | Partially correct | 11.9% | - |
-| Incorrect | 7.1% | at most 10% |
+| Incorrect | 9.5% | at most 10% |
 | Answers with a source | 95.2% | at least 95% |
-| Cited answers with a gold document as source | 95.0% | at least 90% |
+| Cited answers with a gold document as source | 92.5% | at least 90% |
 | "No data" on unanswerable questions | 100% (11/11) | 18 of 20 |
 | Questions found when parsing the source files | 100% (53/53) | at least 95% |
-| Time per question | 4.7 s | 100 questions in 15 min |
-| Cost | $0.0003 per question, $0.033 per 100 questions (judge excluded) | - |
+| Time per question | 4.6 s | 100 questions in 15 min |
+| Cost | $0.0003 per question, $0.034 per 100 questions (judge excluded) | - |
 
 Accuracy is judged by a model against the reference answers; the report includes a sample of 10 pairs for manual
-checking. The thresholds are set for a 100-question set; this one has 53, so the figures are indicative.
+checking. The thresholds are set for a 100-question set; this one has 53, so the figures are indicative. The margin
+on incorrect answers is small: 4 of 42 questions.
+
+The first run on this set showed that some English questions were answered in Russian. After the fix (the question
+language is detected in code and passed to the model) the set was run again; the figures above are from the second
+run. The first run is kept in `reports/quality-2026-10-30-test-before-language-fix.md` (81.0% correct, 7.1% incorrect).
 
 The dev set (55 questions) was used for tuning; its latest run is `reports/quality-2026-10-30-dev.md`
-(77.3% correct, 4.5% incorrect).
+(75.0% correct, 2.3% incorrect).
 
 **Layout on public questionnaires, 2026-10-29** (`reports/layout-2026-10-29-final.md`; model `gpt-4o-mini`):
 mode `llm` found 966 of 1096 reference questions (88.1%); 5 of 7 files at 95% or above. Below the threshold:
@@ -104,11 +109,28 @@ knowledge base, fill jobs, logs). The web interface uses the same routes.
 
 ## Screenshots
 
-Current interface screenshots (to be updated):
+Taken on 2026-10-30 from a real run of the dev questionnaire (40 questions in three languages, model `gpt-4o-mini`).
+The interface is in Russian.
 
-- `docs/screens/review-1440.png` - answer review, desktop
-- `docs/screens/review-390.png` - answer review, phone
-- `docs/screens/jobs-1440.png` - job list
+Answer review: status, confidence, sources. Each answer is in the language of its question.
+
+![Answer review](docs/screens/review-1440.png)
+
+Questions the knowledge base has no answer for: the service says so instead of inventing one.
+
+![No data](docs/screens/no-data-1440.png)
+
+Job list, knowledge base and audit log:
+
+![Job list](docs/screens/jobs-1440.png)
+
+![Knowledge base](docs/screens/knowledge-1440.png)
+
+![Audit log](docs/screens/logs-1440.png)
+
+Phone, 390 px:
+
+<img src="docs/screens/review-390.png" alt="Answer review on a phone" width="300">
 
 ## Repository layout
 
@@ -147,9 +169,6 @@ request to `/health`. Quality evaluation: `uv run python -m rfp.eval --set dev`.
   (`data/public/` is in `.gitignore`; sources are listed in `docs/public-questionnaires.md`).
 - Quality and speed on a local model have not been measured.
 - Background jobs do not resume after a container restart: upload an unfinished job again.
-- Some English questions get a Russian answer when the retrieved fragments are in Russian (the terms of reference
-  require the question's language). A fix is in progress.
-
 ## Licenses
 
 Dependencies, images, the font, htmx and models with their licenses: [docs/licenses.md](docs/licenses.md).
